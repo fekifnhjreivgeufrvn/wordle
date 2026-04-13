@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <title>Wordle</title>
+
+  <!-- PWA -->
+  <meta name="theme-color" content="#f9f7f2"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Wordle"/>
+  <meta name="application-name" content="Wordle"/>
+  <meta name="description" content="The classic word-guessing game"/>
+  <link rel="manifest" href="#" id="pwa-manifest"/>
+
+  <!-- Icons (inline SVG as data URI) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' fill='%231a1a18'/><text x='90' y='130' font-size='110' text-anchor='middle' font-family='Arial Black'>W</text></svg>"/>
+
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Disable selection, zoom, tap highlight ── */
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      touch-action: manipulation;
+    }
+    body, #grid, .tile, .key, header, #keyboard, #narrator {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --bg: #f9f7f2;
+      --surface: #ffffff;
+      --border: #d3cfc6;
+      --text: #1a1a18;
+      --muted: #9e9b94;
+      --correct: #5a8a5e;
+      --present: #c9a84c;
+      --absent: #787570;
+      --key-bg: #e4e1da;
+      --key-text: #1a1a18;
+      --tile-size: 62px;
+      --tile-gap: 6px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Archivo', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding-bottom: max(32px, env(safe-area-inset-bottom));
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      overflow-x: hidden;
+      overscroll-behavior: none;
+    }
+
+    header {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px 16px;
+      border-bottom: 2px solid var(--text);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 40px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--text);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading p {
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    #game { display: none; flex-direction: column; align-items: center; width: 100%; }
+    #game.visible { display: flex; }
+
+    #message-area {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    #message {
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--text);
+      color: var(--bg);
+      padding: 4px 14px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    #message.show { opacity: 1; }
+
+    #grid {
+      display: grid;
+      grid-template-rows: repeat(6, var(--tile-size));
+      gap: var(--tile-gap);
+      margin-bottom: 28px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(5, var(--tile-size));
+      gap: var(--tile-gap);
+    }
+
+    .tile {
+      width: var(--tile-size);
+      height: var(--tile-size);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.75rem;
+      text-transform: uppercase;
+      background: var(--surface);
+      transition: border-color 0.1s;
+    }
+
+    .tile.filled { border-color: var(--muted); }
+    .tile.pop    { animation: pop 0.1s ease; }
+    .tile.shake  { animation: shake 0.4s ease; }
+    .tile.flip   { animation: flip 0.5s ease forwards; }
+    .tile.bounce { animation: bounce 0.6s ease forwards; }
+
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-6px); }
+      40%     { transform: translateX(6px); }
+      60%     { transform: translateX(-4px); }
+      80%     { transform: translateX(4px); }
+    }
+    @keyframes flip {
+      0%   { transform: rotateX(0deg); }
+      49%  { transform: rotateX(90deg); }
+      50%  { transform: rotateX(90deg); }
+      100% { transform: rotateX(0deg); }
+    }
+    @keyframes bounce {
+      0%   { transform: translateY(0); }
+      40%  { transform: translateY(-20px); }
+      60%  { transform: translateY(-10px); }
+      80%  { transform: translateY(-16px); }
+      100% { transform: translateY(0); }
+    }
+
+    .tile[data-state="correct"] { background: var(--correct); border-color: var(--correct); color: white; }
+    .tile[data-state="present"] { background: var(--present); border-color: var(--present); color: white; }
+    .tile[data-state="absent"]  { background: var(--absent);  border-color: var(--absent);  color: white; }
+
+    #keyboard { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .kb-row   { display: flex; gap: 6px; }
+
+    .key {
+      height: 58px;
+      min-width: 43px;
+      padding: 0 6px;
+      border: none;
+      border-radius: 6px;
+      background: var(--key-bg);
+      color: var(--key-text);
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, transform 0.08s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .key:active { transform: scale(0.94); }
+    .key.wide   { min-width: 65px; font-size: 0.72rem; }
+
+    .key[data-state="correct"] { background: var(--correct); color: white; }
+    .key[data-state="present"] { background: var(--present); color: white; }
+    .key[data-state="absent"]  { background: var(--absent);  color: white; }
+
+    #new-game {
+      margin-top: 28px;
+      padding: 12px 32px;
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: none;
+      transition: opacity 0.15s;
+    }
+
+    #new-game:hover   { opacity: 0.8; }
+    #new-game.visible { display: inline-block; }
+
+    /* ── Extra tiles that slide in from the right in special mode ── */
+    .tile.extra {
+      position: absolute;
+      /* left is set via JS */
+      top: 0;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 10;
+      pointer-events: none;
+    }
+    /* Default look when no state set yet */
+    .tile.extra:not([data-state]) {
+      background: var(--surface);
+      border-color: var(--border);
+    }
+    .tile.extra.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ── Secret admin panel ── */
+    #admin-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    #admin-overlay.open { display: flex; }
+
+    #admin-panel {
+      background: var(--bg);
+      border: 3px solid var(--text);
+      border-radius: 10px;
+      padding: 28px 32px 24px;
+      width: min(380px, 92vw);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    #admin-panel h2 {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #admin-panel h2 span { font-size: 1.1rem; }
+
+    #admin-panel label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    #admin-word-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #admin-word-input:focus { border-color: var(--text); }
+
+    #admin-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .admin-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .admin-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: 2px solid var(--text);
+      border-radius: 6px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .admin-btn.primary { background: var(--text); color: var(--bg); }
+    .admin-btn.primary:hover { opacity: 0.8; }
+    .admin-btn.secondary { background: transparent; color: var(--text); }
+    .admin-btn.secondary:hover { background: var(--key-bg); }
+
+    #admin-status {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--correct);
+      min-height: 16px;
+    }
+
+    @media (max-width: 420px) {
+      :root { --tile-size: 52px; --tile-gap: 5px; }
+      .key { height: 50px; min-width: 34px; font-size: 0.72rem; }
+      .key.wide { min-width: 50px; font-size: 0.65rem; }
+      h1 { font-size: 1.6rem; }
+      #keyboard { padding: 0 4px; }
+      .kb-row { gap: 5px; }
+    }
+
+    @media (max-width: 360px) {
+      :root { --tile-size: 46px; --tile-gap: 4px; }
+      .key { height: 46px; min-width: 30px; }
+      .key.wide { min-width: 46px; }
+      h1 { font-size: 1.4rem; }
+    }
+
+    /* Landscape phones — shrink tiles to fit grid + keyboard on screen */
+    @media (max-height: 600px) and (orientation: landscape) {
+      :root { --tile-size: 42px; --tile-gap: 4px; }
+      .key { height: 40px; min-width: 32px; }
+      .key.wide { min-width: 48px; }
+      header { padding: 10px 16px 8px; margin-bottom: 8px; }
+      #message-area { height: 20px; margin-bottom: 8px; }
+      #grid { margin-bottom: 12px; }
+      #keyboard { gap: 5px; }
+    }
+
+    /* Narrator on mobile — full-width bottom bar instead of corner bubble */
+    @media (max-width: 480px) {
+      #narrator {
+        left: 12px;
+        right: 12px;
+        bottom: max(16px, env(safe-area-inset-bottom));
+        max-width: none;
+        border-radius: 10px;
+        font-size: 0.78rem;
+      }
+    }
+
+    /* ── Narrator bubble ── */
+    #narrator {
+      position: fixed;
+      bottom: 28px;
+      right: 24px;
+      max-width: 260px;
+      background: var(--text);
+      color: var(--bg);
+      border-radius: 14px 14px 4px 14px;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      opacity: 0;
+      transform: translateY(12px) scale(0.95);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      pointer-events: none;
+      z-index: 500;
+    }
+    #narrator.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    #narrator-avatar {
+      font-size: 1.1rem;
+      margin-right: 6px;
+    }
+
+    /* ── Row thief ── */
+    .row.stolen {
+      animation: rowSteal 0.5s ease forwards;
+    }
+    @keyframes rowSteal {
+      0%   { opacity: 1; transform: translateX(0); }
+      60%  { opacity: 0.4; transform: translateX(40px); }
+      100% { opacity: 0; transform: translateX(80px); pointer-events: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header><h1>Wordle</h1></header>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Loading word list…</p>
+</div>
+
+<div id="game">
+  <div id="message-area"><div id="message"></div></div>
+  <div id="grid"></div>
+  <div id="keyboard"></div>
+  <button id="new-game" onclick="startNewGame()">New Game</button>
+</div>
+
+<!-- ── Narrator ── -->
+<div id="narrator"><span id="narrator-avatar">😏</span><span id="narrator-text"></span></div>
+
+<!-- ── Secret Admin Panel ── -->
+<div id="admin-overlay">
+  <div id="admin-panel">
+    <h2><span>🎮</span> Troll Console</h2>
+    <div>
+      <label>Set next answer word</label>
+      <input id="admin-word-input" type="text" maxlength="32" placeholder="e.g. HRITHIK" autocomplete="off" spellcheck="false"/>
+    </div>
+    <div id="admin-note">
+      Any length works. Words shorter than 5 letters will let the player win without filling all tiles. Words longer than 5 will spawn hidden extra tiles. 😈
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+      <label style="margin:0;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
+        <div id="troll-toggle" onclick="toggleTrollMode()" style="
+          width:42px;height:24px;border-radius:12px;background:var(--border);
+          position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;">
+          <div id="troll-knob" style="
+            position:absolute;top:3px;left:3px;width:18px;height:18px;
+            border-radius:50%;background:white;transition:transform 0.2s;
+            box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+        </div>
+        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Troll Mode <span style="font-size:0.9rem;">😈</span></span>
+      </label>
+    </div>
+    <div id="troll-note" style="font-size:0.72rem;color:var(--muted);line-height:1.5;display:none;">
+      On guess 3, the game will gasp and swap the target word. All previous tile colors update in real-time. Cannot be used with custom words.
+    </div>
+
+    <!-- Row Thief toggle -->
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+      <label style="margin:0;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
+        <div id="rowthief-toggle" onclick="toggleMode('rowthief')" style="width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;">
+          <div id="rowthief-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+        </div>
+        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Row Thief <span style="font-size:0.9rem;">✂️</span></span>
+      </label>
+    </div>
+    <div id="rowthief-note" style="font-size:0.72rem;color:var(--muted);line-height:1.5;display:none;">
+      After guess 2, the 6th row gets swiped away. You only get 5 chances.
+    </div>
+
+    <!-- False Victory toggle -->
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+      <label style="margin:0;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
+        <div id="falsevic-toggle" onclick="toggleMode('falsevic')" style="width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;">
+          <div id="falsevic-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+        </div>
+        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">False Victory <span style="font-size:0.9rem;">🏆</span></span>
+      </label>
+    </div>
+    <div id="falsevic-note" style="font-size:0.72rem;color:var(--muted);line-height:1.5;display:none;">
+      On the last guess, flash all-green and celebrate... then correct it. "oh wait, mb."
+    </div>
+
+    <!-- Narrator toggle -->
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+      <label style="margin:0;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
+        <div id="narrator-toggle" onclick="toggleMode('narrator')" style="width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;">
+          <div id="narrator-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+        </div>
+        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Narrator <span style="font-size:0.9rem;">😏</span></span>
+      </label>
+    </div>
+    <div id="narrator-note" style="font-size:0.72rem;color:var(--muted);line-height:1.5;display:none;">
+      A passive-aggressive commentator watches your every move and has opinions.
+    </div>
+    <div id="admin-status"></div>
+    <div class="admin-row">
+      <button class="admin-btn primary" onclick="adminApply()">Set &amp; Start</button>
+      <button class="admin-btn secondary" onclick="adminClose()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// WORD LISTS
+// ─────────────────────────────────────────────────────────────────────────────
+const WORDS_URL = 'https://raw.githubusercontent.com/tabatkins/wordle-list/main/words';
+
+const FALLBACK = [
+  "crane","shard","blunt","plank","frost","grind","swamp","flute","chord","blaze",
+  "stomp","brisk","drown","glare","scout","pride","shirt","groan","clamp","bloom",
+  "shrug","creep","brace","trove","flesh","spunk","prawn","stoic","spine","chore",
+  "brain","brave","bread","break","breed","brick","bride","bring","broad","brush",
+  "build","bunch","burst","candy","carry","catch","chain","chair","chalk","cheap",
+  "chess","chest","chief","child","claim","clash","clean","clear","climb","clock",
+  "close","cloud","coach","count","court","cover","crack","craft","crash","cream",
+  "creek","crest","crime","crisp","cross","crowd","crown","crush","curve","cycle",
+  "dance","depth","doubt","draft","drama","dread","dream","dress","drift","drill",
+  "drink","drive","eagle","earth","eight","empty","enjoy","equal","event","extra",
+  "fable","faint","fairy","faith","fancy","fault","feast","fence","fetch","fever",
+  "field","fifth","fifty","fight","final","first","flame","flare","flash","fleet",
+  "float","flood","floor","flour","fluid","force","forge","found","frame","frank",
+  "fraud","fresh","front","frown","fruit","giant","glass","gleam","glide","globe",
+  "grace","grade","grain","grand","grant","graph","grasp","grass","grave","great",
+  "green","greet","group","grove","guess","heart","heavy","hedge","honor","horse",
+  "hotel","human","ideal","image","infer","input","jewel","judge","juice","knife",
+  "knock","known","lance","large","latch","laugh","layer","learn","lease","light",
+  "local","lover","lower","loyal","lucky","lunar","magic","major","march","match",
+  "media","merit","metal","might","minor","model","money","month","moral","motor",
+  "mound","mouse","music","nerve","night","noble","noise","north","novel","nurse",
+  "occur","ocean","onset","orbit","order","other","outer","paint","paper","party",
+  "patch","pause","peace","pearl","penny","perch","petal","phase","phone","photo",
+  "piano","pilot","pitch","pixel","place","plain","plane","plant","plate","plaza",
+  "pluck","plumb","plume","point","polar","poppy","porch","power","press","price",
+  "print","prism","prize","proof","prose","punch","pupil","purse","queen","query",
+  "quest","quick","quiet","quota","quote","radar","rally","ranch","range","rapid",
+  "raven","reach","realm","rebel","relax","rival","river","robin","robot","rocky",
+  "rouge","rough","round","route","royal","rugby","ruler","rusty","saint","salad",
+  "sauce","scale","scene","scent","scope","score","shade","shake","shape","share",
+  "shark","sharp","shelf","shell","shift","shine","shock","shoot","short","shout",
+  "sight","since","sixth","sixty","skill","skull","slash","slave","sleek","sleep",
+  "slick","slide","slope","small","smart","smash","smile","solar","solid","solve",
+  "sorry","south","space","spare","spark","spawn","speak","spear","speed","spell",
+  "spend","spice","spill","spite","split","spoon","sport","spray","stage","stain",
+  "stair","stale","stamp","stand","stark","start","state","steal","steam","steel",
+  "steep","steer","stern","stick","stiff","still","sting","stink","stock","stone",
+  "stood","store","storm","story","stout","strap","stray","strip","study","stuff",
+  "style","sugar","super","swear","sweat","sweep","sweet","swift","swipe","table",
+  "teach","teeth","tempo","tense","those","three","throw","tiger","tight","toast",
+  "token","total","touch","tough","toxic","trace","track","trade","trail","train",
+  "trash","treat","trend","trial","tribe","trick","truck","truly","trunk","twist",
+  "uncle","under","union","unite","until","upper","upset","urban","valid","valor",
+  "value","valve","vapor","vault","video","viola","viper","viral","virus","vital",
+  "vivid","vocal","voter","watch","water","weary","weave","wedge","weird","whale",
+  "wheat","wheel","where","which","while","whole","whose","witch","witty","world",
+  "worry","worst","worth","would","wring","wrist","yacht","yearn","yeast","yield",
+  "young","youth"
+];
+
+const KEYBOARD_ROWS = [
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['ENTER','Z','X','C','V','B','N','M','⌫']
+];
+
+const PRIORITY = { correct: 3, present: 2, absent: 1 };
+
+let VALID_WORDS  = new Set();
+let ANSWER_WORDS = [];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECRET TRIGGERS
+// ─────────────────────────────────────────────────────────────────────────────
+// Each entry: { trigger: 'UPPERCASE', word: 'lowercase' }
+// word can be any length. If word.length < 5, player wins without filling all tiles.
+// If word.length > 5, extra tiles slide in to the right of tile 5.
+const SECRET_WORDS = [
+  // Add secret word triggers here: { trigger: 'SOMETHING', word: 'anything' }
+];
+
+const ADMIN_TRIGGER = 'DKFKDKFJDJFJ';  // opens the troll console
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let targetWord    = '';
+let currentRow    = 0;
+let currentCol    = 0;
+let gameOver      = false;
+let board         = [];         // board[row] = array of typed chars
+let specialMode   = false;      // true when using a secret/admin word
+let inputBuffer   = '';         // rolling buffer for trigger detection
+let queuedWord    = null;       // word set via admin panel, used on next startNewGame
+let extraUnlocked = false;      // per-row: true once first 5 typed letters match target first 5
+let trollMode     = false;      // troll mode: swap word after 3rd guess
+let trollFired    = false;      // true once the troll swap has happened this game
+let rowThiefMode  = false;      // steal row 6 after guess 2
+let rowThiefDone  = false;
+let falseVicMode  = false;      // fake win on last guess then correct
+let narratorMode  = false;      // taunting narrator
+let idleTimer     = null;       // narrator idle detection
+let lastGuessRow  = -1;         // track thinking time per row
+let backspaceCount = 0;         // track rapid backspacing
+
+// The effective typing limit for the current row:
+//   - normal/short word (<=5): always 5
+//   - long word (>5): 5 until extraUnlocked, then targetWord.length
+function typeLimit() {
+  if (targetWord.length <= 5) return 5;
+  return extraUnlocked ? targetWord.length : 5;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadWordLists() {
+  try {
+    const res = await fetch(WORDS_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const all  = text.trim().split('\n')
+                     .map(w => w.trim().toLowerCase())
+                     .filter(w => /^[a-z]{5}$/.test(w));
+    VALID_WORDS = new Set(all);
+    const UNCOMMON = new Set(['q','x','z','j','v']);
+    ANSWER_WORDS = all.filter(w => ![...w].some(c => UNCOMMON.has(c)));
+    for (let i = ANSWER_WORDS.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ANSWER_WORDS[i], ANSWER_WORDS[j]] = [ANSWER_WORDS[j], ANSWER_WORDS[i]];
+    }
+  } catch {
+    VALID_WORDS  = new Set(FALLBACK);
+    ANSWER_WORDS = [...FALLBACK];
+  }
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('game').classList.add('visible');
+  startNewGame();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME INIT
+// ─────────────────────────────────────────────────────────────────────────────
+function startNewGame(forcedWord = null) {
+  const word = forcedWord
+    ?? (queuedWord !== null ? queuedWord : null);
+  queuedWord  = null;
+
+  specialMode = word !== null;
+  targetWord  = word ?? ANSWER_WORDS[Math.floor(Math.random() * ANSWER_WORDS.length)];
+  currentRow  = 0;
+  currentCol  = 0;
+  gameOver    = false;
+  inputBuffer   = '';
+  extraUnlocked = false;
+  trollFired    = false;
+  rowThiefDone  = false;
+  lastGuessRow  = -1;
+  backspaceCount = 0;
+  clearIdleTimer();
+  board         = Array.from({ length: 6 }, () => []);
+  buildGrid();
+  buildKeyboard();
+  showMessage('');
+  document.getElementById('new-game').classList.remove('visible');
+  // Start idle narrator after a delay
+  kickIdleTimer();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRIGGER DETECTION  (runs on every typed letter, even during a game)
+// ─────────────────────────────────────────────────────────────────────────────
+const MAX_TRIGGER_LEN = Math.max(
+  ADMIN_TRIGGER.length,
+  ...(SECRET_WORDS.length ? SECRET_WORDS.map(s => s.trigger.length) : [0])
+);
+
+function checkTriggers(letter) {
+  inputBuffer = (inputBuffer + letter).slice(-MAX_TRIGGER_LEN);
+
+  // Admin panel
+  if (inputBuffer.endsWith(ADMIN_TRIGGER)) {
+    inputBuffer = '';
+    openAdmin();
+    return true;   // consumed
+  }
+
+  // Secret words — longest trigger wins to avoid prefix collisions
+  const matched = SECRET_WORDS
+    .filter(s => inputBuffer.endsWith(s.trigger))
+    .sort((a, b) => b.trigger.length - a.trigger.length)[0];
+
+  if (matched) {
+    inputBuffer = '';
+    startNewGame(matched.word);
+    return true;
+  }
+
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GRID BUILDER
+// ─────────────────────────────────────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (let r = 0; r < 6; r++) {
+    // Each row is relative-positioned so extra tiles can overflow right
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.id = `row-${r}`;
+    row.style.position = 'relative';
+    for (let c = 0; c < 5; c++) {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.id = `tile-${r}-${c}`;
+      row.appendChild(tile);
+    }
+    grid.appendChild(row);
+  }
+}
+
+// Extra tile IDs follow the pattern: tile-{r}-ex{c} where c >= 5
+function getOrCreateExtraTile(r, c) {
+  const id = `tile-${r}-ex${c}`;
+  let tile = document.getElementById(id);
+  if (!tile) {
+    tile = document.createElement('div');
+    tile.className = 'tile extra';
+    tile.id = id;
+    const style    = getComputedStyle(document.documentElement);
+    const tileSize = parseInt(style.getPropertyValue('--tile-size').trim()) || 62;
+    const gap      = parseInt(style.getPropertyValue('--tile-gap').trim()) || 6;
+    tile.style.width  = tileSize + 'px';
+    tile.style.height = tileSize + 'px';
+    tile.style.left   = (5 * (tileSize + gap) + (c - 5) * (tileSize + gap)) + 'px';
+    document.getElementById(`row-${r}`).appendChild(tile);
+  }
+  // Slide in — only if not already visible
+  if (!tile.classList.contains('visible')) {
+    requestAnimationFrame(() => requestAnimationFrame(() => tile.classList.add('visible')));
+  }
+  return tile;
+}
+
+// getTile: use for typing/deleting — creates extra tiles as needed
+function getTile(r, c) {
+  if (c < 5) return document.getElementById(`tile-${r}-${c}`);
+  return getOrCreateExtraTile(r, c);
+}
+// getTileExisting: use for reveal/animation — never creates or re-shows tiles
+function getTileExisting(r, c) {
+  if (c < 5) return document.getElementById(`tile-${r}-${c}`);
+  return document.getElementById(`tile-${r}-ex${c}`);
+}
+
+function getTileRow(r) {
+  // For shaking: always the 5 visible tiles (plus any extra that are currently shown)
+  const len = Math.max(5, currentCol);
+  return Array.from({ length: len }, (_, c) => getTileExisting(r, c)).filter(Boolean);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  KEYBOARD_ROWS.forEach(keys => {
+    const row = document.createElement('div');
+    row.className = 'kb-row';
+    keys.forEach(k => {
+      const btn = document.createElement('button');
+      btn.className = 'key' + (k.length > 1 ? ' wide' : '');
+      btn.textContent = k;
+      btn.dataset.key = k;
+      btn.addEventListener('click', () => handleKey(k));
+      row.appendChild(btn);
+    });
+    kb.appendChild(row);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function showMessage(text, duration = 1800) {
+  const el = document.getElementById('message');
+  el.textContent = text;
+  if (text) {
+    el.classList.add('show');
+    if (duration > 0) setTimeout(() => el.classList.remove('show'), duration);
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INPUT HANDLING
+// ─────────────────────────────────────────────────────────────────────────────
+function handleKey(key) {
+  if (key === '⌫' || key === 'BACKSPACE') {
+    if (!gameOver) deleteLetter();
+    return;
+  }
+  if (key === 'ENTER') {
+    if (!gameOver) submitGuess();
+    return;
+  }
+  if (/^[A-Z]$/.test(key)) {
+    // Check triggers first. If a trigger fires, it resets the game — don't also type the letter.
+    const triggered = checkTriggers(key);
+    if (triggered) return;
+    if (!gameOver) typeLetter(key);
+  }
+}
+
+function typeLetter(letter) {
+  // Check if typing the 5th letter completes the correct first-5 prefix for a long word
+  // We do this BEFORE incrementing so we can check what col we are landing on
+  if (!board[currentRow]) board[currentRow] = [];
+
+  const limit = typeLimit();
+  if (currentCol >= limit) return;
+
+  board[currentRow][currentCol] = letter;
+
+  const tile = getTile(currentRow, currentCol);
+  tile.textContent = letter;
+  tile.classList.add('filled');
+  tile.classList.remove('pop');
+  void tile.offsetWidth;
+  tile.classList.add('pop');
+  currentCol++;
+  backspaceCount = 0; // reset on forward typing
+
+  // Kick idle timer on every keypress
+  kickIdleTimer();
+
+  // After typing the 5th letter, check if the first 5 letters match target's first 5
+  // Only relevant for long-target special mode
+  if (targetWord.length > 5 && currentCol === 5 && !extraUnlocked) {
+    const typed5 = board[currentRow].slice(0, 5).join('').toLowerCase();
+    const target5 = targetWord.slice(0, 5);
+    if (typed5 === target5) {
+      extraUnlocked = true;
+      // No visual fanfare — the extra tiles will just silently become available
+    }
+  }
+
+  // Reset extraUnlocked if user deletes back past position 5
+  // (handled in deleteLetter)
+}
+
+function deleteLetter() {
+  if (currentCol <= 0) return;
+
+  // Track repeated backspacing for narrator taunts
+  backspaceCount++;
+  if (narratorMode && backspaceCount > 0 && backspaceCount % 4 === 0) {
+    narratorSay('backspace');
+  }
+
+  // Grab tile BEFORE decrementing — avoids accidentally re-creating an extra tile
+  const colToDelete = currentCol - 1;
+  const tile = colToDelete >= 5
+    ? document.getElementById(`tile-${currentRow}-ex${colToDelete}`)
+    : document.getElementById(`tile-${currentRow}-${colToDelete}`);
+
+  currentCol--;
+  if (board[currentRow]) board[currentRow][currentCol] = '';
+
+  if (tile) {
+    tile.textContent = '';
+    tile.classList.remove('filled');
+    // Extra tile: hide it (slide out) immediately when its letter is gone
+    if (currentCol >= 5) {
+      tile.classList.remove('visible');
+    }
+  }
+
+  // Crossed back below col 5: lock extras, ensure all hidden
+  if (currentCol < 5 && extraUnlocked) {
+    extraUnlocked = false;
+    for (let c = 5; c < targetWord.length; c++) {
+      const et = document.getElementById(`tile-${currentRow}-ex${c}`);
+      if (et) {
+        et.classList.remove('visible');
+        et.textContent = '';
+        et.classList.remove('filled');
+        if (board[currentRow]) board[currentRow][c] = '';
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBMIT
+// ─────────────────────────────────────────────────────────────────────────────
+function submitGuess() {
+  const target = targetWord;
+  const row    = board[currentRow] || [];
+
+  if (target.length < 5) {
+    if (currentCol < target.length) {
+      shakeRow(currentRow);
+      showMessage('Not enough letters', 1200);
+      narratorSay('short', '');
+      return;
+    }
+    const typed = row.slice(0, currentCol).join('').toLowerCase();
+    resetIdleTimer();
+    revealRow(currentRow, evaluateGuess(typed, target), typed);
+    return;
+  }
+
+  if (target.length > 5) {
+    if (currentCol < 5) {
+      shakeRow(currentRow);
+      showMessage('Not enough letters', 1200);
+      narratorSay('short', '');
+      return;
+    }
+    const typed = row.slice(0, currentCol).join('').toLowerCase();
+    resetIdleTimer();
+    revealRow(currentRow, evaluateGuess(typed, target), typed);
+    return;
+  }
+
+  // Normal 5-letter mode
+  if (currentCol < 5) {
+    shakeRow(currentRow);
+    showMessage('Not enough letters', 1200);
+    narratorSay('short', '');
+    return;
+  }
+  const typed = row.slice(0, 5).join('').toLowerCase();
+  if (!specialMode && !VALID_WORDS.has(typed)) {
+    shakeRow(currentRow);
+    showMessage('Not in word list', 1200);
+    narratorSay('invalid', typed);
+    return;
+  }
+  resetIdleTimer();
+  revealRow(currentRow, evaluateGuess(typed, target), typed);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EVALUATE
+// ─────────────────────────────────────────────────────────────────────────────
+function evaluateGuess(guess, target) {
+  // Result length = guess length so every typed tile gets a colour,
+  // even when guess is longer than target (short-word troll mode).
+  const gLen      = guess.length;
+  const tLen      = target.length;
+  const result    = Array(gLen).fill('absent');
+  const targetArr = target.split('');
+  const guessArr  = guess.split('');
+  const used      = Array(tLen).fill(false);
+
+  // First pass: correct positions (only within target length)
+  for (let i = 0; i < gLen; i++) {
+    if (i < tLen && guessArr[i] === targetArr[i]) {
+      result[i] = 'correct';
+      used[i] = true;
+    }
+  }
+  // Second pass: present letters — check each guess letter against remaining target letters
+  for (let i = 0; i < gLen; i++) {
+    if (result[i] === 'correct') continue;
+    const j = targetArr.findIndex((t, ti) => t === guessArr[i] && !used[ti]);
+    if (j !== -1) { result[i] = 'present'; used[j] = true; }
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REVEAL ROW
+// ─────────────────────────────────────────────────────────────────────────────
+function revealRow(row, result, guess) {
+  const len        = result.length;           // = targetWord.length (for exact guesses)
+  // For short-word mode, guess may be longer than target; result covers only target length.
+  // The extra padding tiles (indices targetLen..4) already got their state set in submitGuess
+  // via the padding loop, so we skip them here — just animate the evaluated ones.
+  const totalVisual = Math.max(len, targetWord.length < 5 ? currentCol : len);
+
+  // Colour all evaluated tiles — use getTileExisting so extra tiles aren't re-animated
+  for (let i = 0; i < len; i++) {
+    const tile = getTileExisting(row, i);
+    if (!tile) continue;
+    setTimeout(() => {
+      tile.classList.add('flip');
+      setTimeout(() => { tile.dataset.state = result[i]; }, 250);
+    }, i * 120);
+  }
+
+  // Short-word padding: tiles beyond target length go grey
+  if (targetWord.length < 5) {
+    for (let c = len; c < currentCol; c++) {
+      const pt = getTileExisting(row, c);
+      if (pt) setTimeout(() => {
+        pt.classList.add('flip');
+        setTimeout(() => { pt.dataset.state = 'absent'; }, 250);
+      }, c * 120);
+    }
+  }
+
+  setTimeout(() => {
+    updateKeyboard(guess, result);
+    const won = result.every(r => r === 'correct');
+    if (won) {
+      if (falseVicMode && row === 5) {
+        // True win on last guess — still do the false victory troll (show green, then "oh wait" change nothing)
+        fireFalseVictory(row, len, true);
+      } else {
+        bounceRow(row, len);
+        const msgs = ['Genius!','Magnificent!','Impressive!','Splendid!','Great!','Phew!'];
+        showMessage(msgs[row] || 'Great!', 0);
+        narratorSay('win', guess, row);
+        gameOver = true;
+        document.getElementById('new-game').classList.add('visible');
+        clearIdleTimer();
+      }
+    } else {
+      currentRow++;
+      currentCol = 0;
+      extraUnlocked = false;
+
+      // Narrator comments on the guess quality
+      narratorSay('wrong', guess, result);
+
+      // ── ROW THIEF: steal row 6 after guess 2 resolves ──
+      if (rowThiefMode && !rowThiefDone && currentRow === 2) {
+        rowThiefDone = true;
+        setTimeout(() => fireRowThief(), 300);
+      }
+
+      // ── TROLL MODE: fires after row 2 (the 3rd guess, index 2) ──
+      if (trollMode && !trollFired && !specialMode && currentRow === 3) {
+        trollFired = true;
+        setTimeout(() => fireTrollSwap(), 400);
+        return;
+      }
+
+      // ── FALSE VICTORY: fire on last-guess loss ──
+      if (falseVicMode && currentRow >= 6) {
+        fireFalseVictory(row, len, false);
+        return;
+      }
+
+      if (currentRow >= 6) {
+        showMessage(targetWord.toUpperCase(), 0);
+        gameOver = true;
+        document.getElementById('new-game').classList.add('visible');
+        clearIdleTimer();
+      }
+
+      // Reset idle timer for the new row
+      resetIdleTimer();
+    }
+  }, totalVisual * 120 + 300);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYBOARD COLOR
+// ─────────────────────────────────────────────────────────────────────────────
+function updateKeyboard(guess, result) {
+  guess.split('').forEach((letter, i) => {
+    const key = document.querySelector(`.key[data-key="${letter.toUpperCase()}"]`);
+    if (!key) return;
+    const cur = key.dataset.state;
+    if (!cur || PRIORITY[result[i]] > PRIORITY[cur]) key.dataset.state = result[i];
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANIMATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+function shakeRow(row) {
+  getTileRow(row).forEach(t => {
+    t.classList.remove('shake');
+    void t.offsetWidth;
+    t.classList.add('shake');
+  });
+}
+
+function bounceRow(row, len) {
+  const count = len ?? Math.max(5, currentCol);
+  Array.from({ length: count }, (_, c) => getTileExisting(row, c)).filter(Boolean).forEach((tile, i) => {
+    setTimeout(() => {
+      tile.classList.remove('bounce');
+      void tile.offsetWidth;
+      tile.classList.add('bounce');
+    }, i * 80 + 400);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODE TOGGLES
+// ─────────────────────────────────────────────────────────────────────────────
+const MODE_CONFIG = {
+  troll:    { var: () => trollMode,    set: v => trollMode = v,    color: 'var(--present)' },
+  rowthief: { var: () => rowThiefMode, set: v => rowThiefMode = v, color: 'var(--present)' },
+  falsevic: { var: () => falseVicMode, set: v => falseVicMode = v, color: 'var(--present)' },
+  narrator: { var: () => narratorMode, set: v => narratorMode = v, color: 'var(--present)' },
+};
+
+function toggleMode(id) {
+  const cfg    = MODE_CONFIG[id];
+  const newVal = !cfg.var();
+  cfg.set(newVal);
+  const toggle = document.getElementById(`${id}-toggle`);
+  const knob   = document.getElementById(`${id}-knob`);
+  const note   = document.getElementById(`${id}-note`);
+  toggle.style.background = newVal ? cfg.color : 'var(--border)';
+  knob.style.transform    = newVal ? 'translateX(18px)' : 'translateX(0)';
+  if (note) note.style.display = newVal ? 'block' : 'none';
+  // Troll is incompatible with custom words — handled in adminApply
+}
+
+// Keep old toggleTrollMode as alias for the existing onclick in HTML
+function toggleTrollMode() { toggleMode('troll'); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROW THIEF
+// ─────────────────────────────────────────────────────────────────────────────
+function fireRowThief() {
+  const row5 = document.getElementById('row-5');
+  if (!row5) return;
+  showMessage('wait where did row 6 go 😈', 1800);
+  row5.classList.add('stolen');
+  // Narrator taunt
+  setTimeout(() => narratorSay('rowthief'), 600);
+  // After animation, truly disable it
+  setTimeout(() => {
+    row5.style.visibility = 'hidden';
+    row5.style.pointerEvents = 'none';
+  }, 500);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FALSE VICTORY
+// ─────────────────────────────────────────────────────────────────────────────
+function fireFalseVictory(row, len, actuallyWon) {
+  // Step 1: force ALL tiles to green (fake win)
+  for (let c = 0; c < len; c++) {
+    const tile = getTileExisting(row, c);
+    if (tile) {
+      setTimeout(() => {
+        tile.classList.remove('flip');
+        void tile.offsetWidth;
+        tile.classList.add('flip');
+        setTimeout(() => { tile.dataset.state = 'correct'; }, 250);
+      }, c * 100);
+    }
+  }
+
+  // Step 2: bounce + triumphant win message
+  setTimeout(() => {
+    bounceRow(row, len);
+    const winMsgs = ['Genius! 🎉','You got it! 🎉','CORRECT! 🎉','Amazing! 🎉'];
+    showMessage(winMsgs[Math.floor(Math.random()*winMsgs.length)], 0);
+  }, len * 100 + 400);
+
+  // Step 3: "oh wait"
+  const ohWaitMsgs = ['oh wait... 😬','hold on a sec...','actually...','wait.'];
+  setTimeout(() => {
+    showMessage(ohWaitMsgs[Math.floor(Math.random()*ohWaitMsgs.length)], 0);
+  }, len * 100 + 2200);
+
+  // Step 4: recolor to truth
+  setTimeout(() => {
+    const guess  = board[row].slice(0, 5).join('').toLowerCase();
+    const result = evaluateGuess(guess, targetWord);
+    for (let c = 0; c < len; c++) {
+      const tile = getTileExisting(row, c);
+      if (!tile) continue;
+      setTimeout(() => {
+        tile.classList.remove('flip');
+        void tile.offsetWidth;
+        tile.classList.add('flip');
+        setTimeout(() => { tile.dataset.state = result[c]; }, 250);
+      }, c * 100);
+    }
+    setTimeout(() => {
+      if (actuallyWon) {
+        // They actually got it right — the twist is that we troll them but then confirm it
+        showMessage('jk jk, you got it 😒', 0);
+        narratorSay('win', guess, row);
+      } else {
+        const wrongMsgs = ['mb its actually wrong lol 💀', 'yeah no. that was wrong.', 'oops. not it. sorry (not sorry).'];
+        showMessage(wrongMsgs[Math.floor(Math.random()*wrongMsgs.length)], 0);
+        showMessage(`the word was ${targetWord.toUpperCase()}`, 0);
+        setTimeout(() => showMessage(`the word was ${targetWord.toUpperCase()}`, 0), 600);
+        narratorSay('falsevic', guess);
+      }
+      gameOver = true;
+      document.getElementById('new-game').classList.add('visible');
+      clearIdleTimer();
+    }, len * 100 + 500);
+  }, len * 100 + 3200);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TROLL MODE (word swap)
+// ─────────────────────────────────────────────────────────────────────────────
+function fireTrollSwap() {
+  let newWord;
+  do { newWord = ANSWER_WORDS[Math.floor(Math.random() * ANSWER_WORDS.length)]; }
+  while (newWord === targetWord);
+
+  showMessage('uh actually i changed my mind 😈', 0);
+
+  setTimeout(() => {
+    targetWord = newWord;
+
+    for (let r = 0; r < currentRow; r++) {
+      const rowGuess = board[r].slice(0, 5).join('').toLowerCase();
+      if (!rowGuess) continue;
+      const newResult = evaluateGuess(rowGuess, targetWord);
+      for (let c = 0; c < 5; c++) {
+        const tile = getTileExisting(r, c);
+        if (!tile) continue;
+        const delay = c * 80;
+        setTimeout(() => {
+          tile.classList.remove('flip');
+          void tile.offsetWidth;
+          tile.classList.add('flip');
+          setTimeout(() => { tile.dataset.state = newResult[c] ?? 'absent'; }, 250);
+        }, delay);
+      }
+    }
+
+    setTimeout(() => {
+      buildKeyboard();
+      for (let r = 0; r < currentRow; r++) {
+        const rowGuess  = board[r].slice(0, 5).join('').toLowerCase();
+        if (!rowGuess) continue;
+        const newResult = evaluateGuess(rowGuess, targetWord);
+        updateKeyboard(rowGuess, newResult);
+      }
+      setTimeout(() => showMessage(''), 2200);
+    }, 5 * 80 + 400);
+  }, 900);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NARRATOR
+// ─────────────────────────────────────────────────────────────────────────────
+let narratorTimer = null;
+
+const NARRATOR_LINES = {
+  invalid: [
+    w => `"${w.toUpperCase()}"?? is that even a language`,
+    w => `bro typed "${w.toUpperCase()}" with full confidence 💀`,
+    w => `${w.toUpperCase()} is not a word. it has never been a word.`,
+    w => `i looked up "${w.toUpperCase()}". nothing. absolutely nothing.`,
+    w => `${w.toUpperCase()}? did you sneeze on the keyboard?`,
+    w => `even autocorrect gave up on "${w.toUpperCase()}"`,
+    w => `"${w.toUpperCase()}" sent me 😭`,
+    w => `not a word. not even close. ${w.toUpperCase()} does not exist.`,
+    w => `dictionary has zero results for "${w.toUpperCase()}". shocking, right?`,
+    w => `${w[0].toUpperCase() + w.slice(1).toLowerCase()} called. it said it's not a real word.`,
+    w => `ok who taught you to spell. was it ${w.toUpperCase()}? because that's not a word`,
+    w => `sir/ma'am... "${w.toUpperCase()}"...`,
+    w => `i genuinely cannot believe you typed ${w.toUpperCase()} and pressed enter`,
+    w => `${w.toUpperCase()} isn't in the dictionary, it isn't in my heart, it isn't anywhere`,
+    w => `was "${w.toUpperCase()}" a typo? please say it was a typo.`,
+    w => `${w.toUpperCase()}... i'm going to pretend that didn't happen`,
+    w => `new word just dropped: "${w.toUpperCase()}". meaning: nothing. it means nothing.`,
+    w => `the scrabble dictionary, the oxford dictionary, merriam-webster... all agree. ${w.toUpperCase()} is fake.`,
+    w => `i asked every language on earth. none of them claim ${w.toUpperCase()}.`,
+    w => `${w.toUpperCase()} is not a word in any dimension i'm aware of`,
+    w => `did your cat walk on the keyboard? because "${w.toUpperCase()}" looks like that.`,
+    w => `"${w.toUpperCase()}" is a bold choice for someone who can't spell`,
+    w => `you confidently entered ${w.toUpperCase()} like it was gonna work. i respect the commitment. not the word.`,
+    w => `${w.slice(0,2).toUpperCase()}...${w.slice(2).toUpperCase()}? where did you even get that from`,
+    w => `${w.toUpperCase()} has never appeared in print. ever. congratulations on inventing nothing.`,
+    w => `i'm adding "${w.toUpperCase()}" to my list of things that don't exist`,
+    w => `Webster's. Collins. Cambridge. All opened, all checked. ${w.toUpperCase()}: not found.`,
+    w => `${w.toUpperCase()} isn't a word, a name, a sound, or a vibe. try again.`,
+  ],
+  short: [
+    () => `that's not even 5 letters. come on.`,
+    () => `did you forget how many letters a word has`,
+    () => `bro hit enter halfway through 💀`,
+    () => `…you were gonna finish that right`,
+    () => `5 letters. five. that's all i ask.`,
+    () => `we're playing wordle, not morse code`,
+    () => `press a few more keys. any keys. please.`,
+    () => `i've seen better attempts from a cat walking on a keyboard`,
+    () => `finish your thought. you were SO close to having a word.`,
+    () => `the enter key is not for partial credit`,
+    () => `you need 5 letters. count them. on your fingers if you have to.`,
+    () => `are you submitting a fragment? this is not a fragment game.`,
+    () => `i appreciate the enthusiasm but maybe finish the word first`,
+    () => `not enough letters. the tile is RIGHT THERE.`,
+    () => `did the keyboard break or did you just give up mid-word`,
+    () => `5. letters. five of them. please.`,
+  ],
+  wrong: [
+    (g, r) => {
+      const greens = r.filter(x => x === 'correct').length;
+      const yellows = r.filter(x => x === 'present').length;
+      if (greens === 0 && yellows === 0) return `literally nothing. zero. not one letter. impressive in the worst way.`;
+      if (greens === 0 && yellows === 1) return `one yellow. one. you gonna do anything with that?`;
+      if (greens === 0) return `all those yellows and not a single green... tragic`;
+      if (greens >= 4) return `you have ${greens} greens and you STILL got it wrong 💀`;
+      if (greens === 3) return `3 greens. getting warmer. or are you?`;
+      return `${greens} green${greens>1?'s':''}, ${yellows} yellow${yellows!==1?'s':''}. this could take a while.`;
+    },
+    (g, r) => {
+      const greens = r.filter(x => x === 'correct').length;
+      if (greens === 0) return `"${g.toUpperCase()}" was not it chief`;
+      return `so close. and yet so far. "${g.toUpperCase()}" stays wrong.`;
+    },
+    (g) => `"${g.toUpperCase()}"... bold choice. wrong, but bold.`,
+    (g) => `${g.toUpperCase()} tried. ${g.toUpperCase()} failed.`,
+    (g, r) => {
+      const greens = r.filter(x => x === 'correct').length;
+      return greens > 0 ? `${greens} green${greens>1?'s':''} and you call yourself a wordle player` : `not a single letter in the right place. genuinely impressive`;
+    },
+    () => `tick tock. the word isn't getting easier.`,
+    () => `you do know you only get 6 tries, right`,
+    (g) => `i wrote "${g.toUpperCase()}" in my diary under "things that didn't work"`,
+    (g, r) => {
+      const yellows = r.filter(x => x === 'present').length;
+      return yellows >= 3 ? `${yellows} yellows and you put none of them in a different spot. interesting strategy.` : `wrong. just wrong.`;
+    },
+    (g) => `${g.toUpperCase()}. nope. next.`,
+    (g, r) => {
+      const greens = r.filter(x => x === 'correct').length;
+      const yellows = r.filter(x => x === 'present').length;
+      if (greens === 0 && yellows === 0) return `zero hints. none. the board is trying to tell you something.`;
+      if (greens === 4) return `ONE letter away. literally one. and you missed it.`;
+      return `keep going i guess`;
+    },
+    (g) => `"${g.toUpperCase()}" is not it. i know it. you know it. the tiles know it.`,
+    (g, r) => {
+      const greens = r.filter(x => x === 'correct').length;
+      return greens === 0 ? `not a single green. clean slate i guess. for the 3rd time.` : `${greens} locked in. the rest is up to you. unfortunately.`;
+    },
+    () => `have you considered that you might just be bad at this`,
+    (g) => `"${g.toUpperCase()}" was a choice. not a good one. but a choice.`,
+    (g, r) => {
+      const greens = r.filter(x => x === 'correct').length;
+      const yellows = r.filter(x => x === 'present').length;
+      if (greens + yellows >= 4) return `you have so much information and still managed to guess wrong. that's a skill.`;
+      return `use the clues. they exist for a reason.`;
+    },
+    () => `wrong again. i'm not surprised. are you?`,
+    (g) => `${g.toUpperCase()} has left the building. as it should.`,
+    () => `the word is still there. patient. waiting. mocking you silently.`,
+    (g, r) => {
+      const yellows = r.filter(x => x === 'present').length;
+      return yellows > 0 ? `those yellows are hints, not decorations. use them.` : `cold. ice cold.`;
+    },
+    (g) => `this is guess number ${currentRow + 1} now. just so you're aware.`,
+    () => `i've seen rocks make better guesses`,
+    (g, r) => {
+      const greens = r.filter(x => x === 'correct').length;
+      return greens === 5 ? `wait, that was right actually —` : `nope. wrong. try harder.`;
+    },
+    () => `at least you're consistent. consistently wrong, but consistent.`,
+    (g) => `"${g.toUpperCase()}" joins a long list of incorrect guesses`,
+    () => `that guess tells me a lot about you. none of it good.`,
+    (g) => `${g[0].toUpperCase()}${g.slice(1).toUpperCase()}? in THIS economy?`,
+  ],
+  idle: [
+    () => `still thinking? the word isn't going to guess itself.`,
+    () => `you've been staring at this for a while now`,
+    () => `it's just 5 letters. five.`,
+    () => `do you need a hint? i'm not giving you one, but do you?`,
+    () => `the word is still the same word it was 2 minutes ago`,
+    () => `at this rate the word will expire before you guess it`,
+    () => `i've seen glaciers move faster`,
+    () => `have you tried just... typing something?`,
+    () => `hello? anyone home?`,
+    () => `i'm still here. waiting. very patiently. (not really)`,
+    () => `if you stare at the board long enough it doesn't help. trust me.`,
+    () => `take your time. it's not like the word is judging you. i am though.`,
+    () => `clock's running. (there's no clock. but feel the pressure.)`,
+    () => `the tiles are getting impatient. i'm getting impatient.`,
+    () => `you know you have to actually type something, right?`,
+    () => `the keyboard works. i checked. it's waiting for you.`,
+    () => `okay so are we doing this or not`,
+    () => `i've been watching you not type for quite a while now`,
+    () => `"hmm let me think" ok you've been thinking. thoughts? words? anything?`,
+    () => `the answer isn't going to appear telepathically. type.`,
+    () => `i'm starting to think you've given up and just haven't told me`,
+    () => `*taps foot* *checks watch* *taps foot again*`,
+    () => `have you gone for a walk? made a snack? please just type something.`,
+    () => `the word is 5 letters. you have a full keyboard. pick five.`,
+    () => `i believe in you. i believe you can type a word. prove me right.`,
+    () => `...still nothing. okay. take your time. i have nowhere to be.`,
+    () => `you're really making me earn this narrator gig`,
+    () => `every second you wait, somewhere a vowel gets lonely`,
+  ],
+  win: [
+    (g, row) => row === 0 ? `okay genius, first try. we get it.` : row <= 2 ? `fine. fine, that was decent.` : row <= 4 ? `got there eventually i guess` : `phew. that was painful to watch.`,
+    (g, row) => row >= 4 ? `guess ${row+1}. you cut it close. real close.` : `alright you got it. don't let it go to your head.`,
+    (g, row) => row === 5 ? `last guess. you live to play another day. barely.` : `not bad. i've seen worse. i've also seen much better.`,
+    (g, row) => row === 0 ? `first try. sure. casual.` : row <= 1 ? `fine, i'll admit that was quick.` : `you got it. eventually. congratulations i suppose.`,
+    (g, row) => row >= 4 ? `cutting it a bit close don't you think. guess ${row+1} of 6.` : `correct. don't celebrate too hard.`,
+    (g, row) => row === 5 ? `LAST GUESS. you absolute maniac. you got it on the LAST GUESS.` : `${row+1} guesses. could've been fewer.`,
+    (g, row) => row === 0 ? `ugh. first try. i hate this.` : `fine, you won. this time.`,
+  ],
+  falsevic: [
+    g => `yeah "${g.toUpperCase()}" was never right. did it feel good for a second though?`,
+    g => `LMAO did you celebrate? because you shouldn't have.`,
+    () => `the board giveth and the board taketh away 😇`,
+    () => `in another universe that was correct. not this one.`,
+    () => `oh that? yeah that was a bug. the real answer is different.`,
+    g => `"${g.toUpperCase()}"... close enough for a second. not close enough for real.`,
+    () => `did you get up and do a little dance? you did didn't you.`,
+    () => `surprise! the game lies sometimes. cope.`,
+    g => `${g.toUpperCase()} looked right. felt right. was absolutely wrong.`,
+    () => `the greens were a lie. the colors were a lie. everything is fine.`,
+  ],
+  backspace: [
+    () => `changing your mind already?`,
+    () => `delete delete delete. this is going well.`,
+    () => `second-guessing yourself? wise.`,
+    () => `the backspace key is getting a workout today`,
+    () => `was that not the vibe? smart call.`,
+    () => `ah yes, the classic "type it then immediately regret it"`,
+    () => `deleting letters won't delete the shame`,
+    () => `backspace: the button of the indecisive`,
+  ],
+  rowthief: [
+    () => `whoops. looks like you lost a row. funny how that happens.`,
+    () => `row 6 has been... relocated. you're welcome.`,
+    () => `that last row? gone. consider it a tax.`,
+    () => `the house always takes a cut. in this case, a row.`,
+    () => `row 6 has left the chat 👋`,
+    () => `you had 6 guesses. now you have 5. make them count. or don't.`,
+    () => `i borrowed row 6. i'm not giving it back.`,
+    () => `5 guesses left. just like that. life comes at you fast.`,
+  ],
+};
+
+const NARRATOR_AVATARS = {
+  invalid: '🙄', short: '😐', wrong: '😏', idle: '🥱', win: '😒', falsevic: '😈',
+  backspace: '🤨', rowthief: '😈'
+};
+
+function narratorSay(type, arg1, arg2) {
+  if (!narratorMode) return;
+  const lines = NARRATOR_LINES[type];
+  if (!lines || lines.length === 0) return;
+
+  // Pick a random line, evaluate it
+  const fn   = lines[Math.floor(Math.random() * lines.length)];
+  const text = fn(arg1, arg2);
+
+  const el     = document.getElementById('narrator');
+  const textEl = document.getElementById('narrator-text');
+  const avatar = document.getElementById('narrator-avatar');
+
+  // Clear existing timer
+  if (narratorTimer) clearTimeout(narratorTimer);
+
+  // Hide, update, show
+  el.classList.remove('show');
+  setTimeout(() => {
+    avatar.textContent   = NARRATOR_AVATARS[type] + ' ';
+    textEl.textContent   = text;
+    el.classList.add('show');
+    // Auto-hide after a while
+    narratorTimer = setTimeout(() => el.classList.remove('show'), 5500);
+  }, el.classList.contains('show') ? 200 : 0);
+}
+
+// Idle timer — fires if player hasn't typed or submitted for a while
+function kickIdleTimer() {
+  if (!narratorMode || gameOver) return;
+  if (idleTimer) clearTimeout(idleTimer);
+  // First taunt after 18s, repeat every 22s
+  idleTimer = setTimeout(function fireIdle() {
+    if (!gameOver && narratorMode) {
+      narratorSay('idle', '');
+      idleTimer = setTimeout(fireIdle, 22000);
+    }
+  }, 18000);
+}
+
+function resetIdleTimer() {
+  clearIdleTimer();
+  kickIdleTimer();
+}
+
+function clearIdleTimer() {
+  if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+function openAdmin() {
+  const overlay = document.getElementById('admin-overlay');
+  overlay.classList.add('open');
+  const input = document.getElementById('admin-word-input');
+  input.value = '';
+  document.getElementById('admin-status').textContent = '';
+  setTimeout(() => input.focus(), 50);
+
+  // Prevent game keypresses while panel is open
+  overlay.addEventListener('keydown', adminKeyHandler);
+}
+
+function adminKeyHandler(e) {
+  if (e.key === 'Escape') adminClose();
+  if (e.key === 'Enter')  adminApply();
+  e.stopPropagation();   // don't let letters fall through to the game
+}
+
+function adminClose() {
+  const overlay = document.getElementById('admin-overlay');
+  overlay.classList.remove('open');
+  overlay.removeEventListener('keydown', adminKeyHandler);
+}
+
+function adminApply() {
+  const raw = document.getElementById('admin-word-input').value.trim().toLowerCase();
+
+  // Non-empty but invalid characters
+  if (raw && !/^[a-z]+$/.test(raw)) {
+    document.getElementById('admin-status').textContent = '⚠ Letters only please';
+    document.getElementById('admin-status').style.color = '#c0392b';
+    return;
+  }
+
+  if (raw) {
+    // Custom word set — troll mode is incompatible, disable it
+    if (trollMode) {
+      trollMode = false;
+      const toggle = document.getElementById('troll-toggle');
+      const knob   = document.getElementById('troll-knob');
+      const note   = document.getElementById('troll-note');
+      toggle.style.background = 'var(--border)';
+      knob.style.transform    = 'translateX(0)';
+      if (note) note.style.display = 'none';
+    }
+    queuedWord = raw;
+    document.getElementById('admin-status').textContent = `✓ "${raw.toUpperCase()}" locked and loaded`;
+  } else {
+    // Blank — random word, keep troll mode as-is
+    queuedWord = null;
+    document.getElementById('admin-status').textContent = trollMode
+      ? '✓ Random word · Troll mode ON 😈'
+      : '✓ Starting random game…';
+  }
+
+  document.getElementById('admin-status').style.color = 'var(--correct)';
+  setTimeout(() => {
+    adminClose();
+    startNewGame();
+  }, 900);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYBOARD LISTENER
+// ─────────────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  // If admin panel is open, let it handle its own keys
+  if (document.getElementById('admin-overlay').classList.contains('open')) return;
+  const key = e.key.toUpperCase();
+  if (key === 'BACKSPACE') handleKey('BACKSPACE');
+  else if (key === 'ENTER') handleKey('ENTER');
+  else if (/^[A-Z]$/.test(key)) handleKey(key);
+});
+
+// ── Go! ───────────────────────────────────────────────────────────────────────
+loadWordLists();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PWA — Inline Manifest + Service Worker
+// ─────────────────────────────────────────────────────────────────────────────
+(function initPWA() {
+  // Inject manifest as a blob URL so no separate file is needed
+  const manifest = {
+    name: 'Wordle',
+    short_name: 'Wordle',
+    description: 'The classic word-guessing game',
+    start_url: './',
+    display: 'standalone',
+    orientation: 'portrait-primary',
+    background_color: '#f9f7f2',
+    theme_color: '#1a1a18',
+    icons: [
+      {
+        src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%231a1a18'/><text x='256' y='370' font-size='320' text-anchor='middle' font-family='Arial Black' fill='%23f9f7f2'>W</text></svg>",
+        sizes: '512x512',
+        type: 'image/svg+xml',
+        purpose: 'any maskable'
+      }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const url  = URL.createObjectURL(blob);
+  document.getElementById('pwa-manifest').href = url;
+
+  // Minimal service worker for offline caching
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+const CACHE = 'wordle-v1';
+const ASSETS = [self.location.href.replace('/sw.js','/')];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(()=>{}));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => new Response('Offline', {status: 503}))));
+});
+`;
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl, { scope: './' }).catch(() => {});
+  }
+})();
+
+// Prevent double-tap zoom on iOS
+let lastTap = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTap < 300) e.preventDefault();
+  lastTap = now;
+}, { passive: false });
+
+// Prevent pull-to-refresh
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+</script>
+</body>
+</html>
