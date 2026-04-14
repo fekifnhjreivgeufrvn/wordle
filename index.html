@@ -447,11 +447,558 @@
       60%  { opacity: 0.4; transform: translateX(40px); }
       100% { opacity: 0; transform: translateX(80px); pointer-events: none; }
     }
+
+    /* ═══════════════════════════════════════════════
+       TITLE SCREEN
+    ═══════════════════════════════════════════════ */
+    #title-screen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #title-screen.hidden {
+      opacity: 0; pointer-events: none; transform: scale(0.97);
+    }
+
+    #title-inner {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 28px; padding: 32px 20px;
+      width: 100%; max-width: 360px;
+    }
+
+    #title-logo {
+      display: flex; gap: 6px;
+    }
+    .title-tile {
+      width: 52px; height: 52px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.6rem;
+      text-transform: uppercase;
+      background: var(--surface);
+      animation: titlePop 0.5s ease both;
+    }
+    .title-tile:nth-child(1) { animation-delay: 0.05s; }
+    .title-tile:nth-child(2) { animation-delay: 0.1s; }
+    .title-tile:nth-child(3) { animation-delay: 0.15s; }
+    .title-tile:nth-child(4) { animation-delay: 0.2s; }
+    .title-tile:nth-child(5) { animation-delay: 0.25s; }
+    .title-tile:nth-child(6) { animation-delay: 0.3s; }
+    .title-tile[data-state="correct"] { background: var(--correct); border-color: var(--correct); color: white; }
+    .title-tile[data-state="present"] { background: var(--present); border-color: var(--present); color: white; }
+    .title-tile[data-state="absent"]  { background: var(--absent);  border-color: var(--absent);  color: white; }
+    @keyframes titlePop {
+      0%   { opacity: 0; transform: scale(0.7) rotateX(-30deg); }
+      60%  { transform: scale(1.08); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    #title-tagline {
+      font-size: 0.78rem; color: var(--muted);
+      letter-spacing: 0.06em; text-align: center;
+      text-transform: uppercase; font-weight: 500;
+    }
+
+    #title-player-card {
+      width: 100%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    #title-nameplate-wrap { display: flex; justify-content: center; }
+    #title-level-info {
+      display: flex; align-items: center; gap: 10px;
+    }
+    #title-level-label {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.75rem; letter-spacing: 0.1em;
+      white-space: nowrap; color: var(--text);
+    }
+    #title-xp-bar-wrap {
+      flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+    }
+    #title-xp-bar {
+      height: 100%; background: var(--correct); border-radius: 3px;
+      transition: width 0.6s ease;
+      width: 0%;
+    }
+    #title-xp-label {
+      font-size: 0.68rem; color: var(--muted); white-space: nowrap;
+    }
+
+    #title-buttons { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+
+    .title-btn {
+      width: 100%; padding: 14px 0;
+      border: 2px solid var(--text);
+      border-radius: 8px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.85rem; letter-spacing: 0.14em;
+      text-transform: uppercase; cursor: pointer;
+      transition: opacity 0.15s, transform 0.08s;
+    }
+    .title-btn:active { transform: scale(0.97); }
+    .title-btn.primary { background: var(--text); color: var(--bg); }
+    .title-btn.primary:hover { opacity: 0.85; }
+    .title-btn.secondary { background: transparent; color: var(--text); }
+    .title-btn.secondary:hover { background: var(--key-bg); }
+
+    #title-quickstats {
+      display: flex; gap: 0; width: 100%;
+      border: 2px solid var(--border); border-radius: 10px; overflow: hidden;
+      background: var(--surface);
+    }
+    .qs-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 10px 4px;
+      border-right: 1px solid var(--border);
+    }
+    .qs-item:last-child { border-right: none; }
+    .qs-val {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.3rem; color: var(--text);
+    }
+    .qs-key {
+      font-size: 0.6rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px;
+    }
+
+    /* ═══════════════════════════════════════════════
+       STATS / UNLOCKS SCREEN
+    ═══════════════════════════════════════════════ */
+    #stats-screen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: 300;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #stats-screen.open { transform: translateX(0); }
+
+    #stats-inner {
+      max-width: 460px; margin: 0 auto;
+      padding: 0 16px max(80px, env(safe-area-inset-bottom));
+    }
+
+    #stats-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 0 16px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 20px;
+      position: sticky; top: 0; background: var(--bg); z-index: 10;
+    }
+    #stats-title-text {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.1rem; letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .back-btn {
+      background: none; border: none; cursor: pointer;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text); padding: 6px 0;
+    }
+
+    #stats-player-card {
+      background: var(--surface); border: 2px solid var(--border);
+      border-radius: 12px; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px;
+      margin-bottom: 20px;
+    }
+    #stats-nameplate-preview {
+      display: flex; justify-content: center;
+    }
+    #stats-level-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    #stats-level-badge {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.8rem; letter-spacing: 0.1em;
+      background: var(--text); color: var(--bg);
+      padding: 3px 8px; border-radius: 4px;
+      white-space: nowrap;
+    }
+    #stats-xp-bar-wrap {
+      flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;
+    }
+    #stats-xp-bar {
+      height: 100%; background: var(--correct); border-radius: 4px;
+      transition: width 0.7s ease; width: 0%;
+    }
+    #stats-xp-text { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+    #stats-rank-label {
+      text-align: center; font-size: 0.72rem; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500;
+    }
+
+    #stats-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 10px; margin-bottom: 24px;
+    }
+    .stat-box {
+      background: var(--surface); border: 2px solid var(--border);
+      border-radius: 10px; padding: 14px 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .stat-val {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.6rem; color: var(--text);
+    }
+    .stat-lbl {
+      font-size: 0.62rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    .stats-section-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 12px;
+    }
+    #stats-dist-section { margin-bottom: 24px; }
+    #guess-dist { display: flex; flex-direction: column; gap: 6px; }
+    .dist-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .dist-label {
+      font-family: 'Archivo Black', sans-serif; font-size: 0.85rem;
+      width: 16px; text-align: right; flex-shrink: 0;
+    }
+    .dist-bar-wrap { flex: 1; height: 24px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .dist-bar {
+      height: 100%; background: var(--absent); border-radius: 4px;
+      display: flex; align-items: center; justify-content: flex-end;
+      padding-right: 6px; min-width: 24px;
+      transition: width 0.8s ease;
+    }
+    .dist-bar.highlight { background: var(--correct); }
+    .dist-bar span {
+      font-family: 'Archivo Black', sans-serif; font-size: 0.7rem; color: white;
+    }
+
+    /* ═══════════════════════════════════════════════
+       NAMEPLATES
+    ═══════════════════════════════════════════════ */
+    .nameplate {
+      display: inline-flex; align-items: center; gap: 0;
+      border-radius: 4px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .nameplate-level {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.65rem; letter-spacing: 0.06em;
+      padding: 4px 7px;
+      background: rgba(0,0,0,0.18);
+      color: inherit;
+      border-right: 1px solid rgba(0,0,0,0.15);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .nameplate-icon {
+      padding: 4px 5px 4px 8px;
+      flex-shrink: 0;
+    }
+    .nameplate-label {
+      padding: 4px 10px 4px 4px;
+      flex: 1;
+    }
+
+    /* ── Username modal ── */
+    #username-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 600;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    #username-modal.open { opacity: 1; pointer-events: all; }
+    #username-card {
+      background: var(--bg); border: 3px solid var(--text);
+      border-radius: 12px; padding: 28px 28px 24px;
+      width: min(340px, 90vw);
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    #username-card h2 {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.95rem; letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    #username-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1rem; letter-spacing: 0.08em;
+      border: 2px solid var(--border); border-radius: 6px;
+      background: var(--surface); color: var(--text);
+      outline: none; transition: border-color 0.15s;
+      text-transform: uppercase;
+    }
+    #username-input:focus { border-color: var(--text); }
+    #username-preview-wrap {
+      display: flex; justify-content: center;
+      padding: 10px 0 4px;
+    }
+    #username-hint {
+      font-size: 0.7rem; color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+    .username-btn-row { display: flex; gap: 8px; }
+    .username-btn-row .admin-btn { flex: 1; }
+
+    /* ── Save/Load section in stats ── */
+    #save-section { margin-bottom: 24px; }
+    .save-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .save-btn {
+      flex: 1; min-width: 120px;
+      padding: 10px 0;
+      border: 2px solid var(--text);
+      border-radius: 6px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.72rem; letter-spacing: 0.1em;
+      text-transform: uppercase; cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .save-btn.primary { background: var(--text); color: var(--bg); }
+    .save-btn.primary:hover { opacity: 0.8; }
+    .save-btn.secondary { background: transparent; color: var(--text); }
+    .save-btn.secondary:hover { background: var(--key-bg); }
+    #save-status {
+      font-size: 0.72rem; color: var(--correct);
+      letter-spacing: 0.06em; min-height: 16px; margin-top: 4px;
+    }
+
+    /* Unlocks grid */
+    #stats-unlocks-section { margin-bottom: 24px; }
+    #unlocks-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .unlock-card {
+      background: var(--surface); border: 2px solid var(--border);
+      border-radius: 10px; padding: 14px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      cursor: pointer; transition: border-color 0.15s, transform 0.08s;
+      position: relative;
+    }
+    .unlock-card:active { transform: scale(0.97); }
+    .unlock-card.locked { opacity: 0.45; cursor: default; }
+    .unlock-card.locked:active { transform: none; }
+    .unlock-card.equipped { border-color: var(--correct); }
+    .unlock-card-lvl {
+      font-size: 0.6rem; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .unlock-equipped-badge {
+      position: absolute; top: 6px; right: 6px;
+      font-size: 0.55rem; background: var(--correct); color: white;
+      padding: 1px 5px; border-radius: 3px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      font-family: 'Archivo Black', sans-serif;
+    }
+    .unlock-lock-icon {
+      position: absolute; top: 6px; right: 8px;
+      font-size: 0.8rem;
+    }
+
+    /* ═══════════════════════════════════════════════
+       LEVEL UP OVERLAY
+    ═══════════════════════════════════════════════ */
+    #levelup-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 400;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #levelup-overlay.show { opacity: 1; pointer-events: all; }
+    #levelup-card {
+      background: var(--bg); border: 3px solid var(--text);
+      border-radius: 14px; padding: 32px 28px;
+      width: min(340px, 90vw);
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      transform: scale(0.85);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #levelup-overlay.show #levelup-card { transform: scale(1); }
+    #levelup-emoji { font-size: 3rem; }
+    #levelup-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    #levelup-level {
+      font-size: 0.9rem; color: var(--muted); letter-spacing: 0.1em;
+      text-transform: uppercase; font-weight: 500;
+    }
+    #levelup-unlock-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 12px; background: var(--surface);
+      border: 2px solid var(--border); border-radius: 8px; width: 100%;
+    }
+    #levelup-unlock-label {
+      font-size: 0.65rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;
+    }
+
+    /* ═══════════════════════════════════════════════
+       GAME HEADER (updated)
+    ═══════════════════════════════════════════════ */
+    #game-header {
+      width: 100%; max-width: 520px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px 12px;
+      border-bottom: 2px solid var(--text);
+      margin-bottom: 16px;
+    }
+    #header-center {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    #header-back-btn, #header-stats-btn {
+      background: none; border: none; cursor: pointer;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.9rem; letter-spacing: 0.08em;
+      color: var(--text); padding: 6px 8px;
+      border-radius: 6px;
+      transition: background 0.15s;
+      min-width: 40px; text-align: center;
+    }
+    #header-back-btn:hover, #header-stats-btn:hover { background: var(--key-bg); }
+    #header-nameplate { display: flex; justify-content: center; }
+
   </style>
 </head>
 <body>
 
-<header><h1>Wordle</h1></header>
+<!-- ── TITLE SCREEN ── -->
+<div id="title-screen">
+  <div id="title-inner">
+    <div id="title-logo">
+      <div class="title-tile" data-state="correct">W</div>
+      <div class="title-tile" data-state="present">O</div>
+      <div class="title-tile">R</div>
+      <div class="title-tile" data-state="absent">D</div>
+      <div class="title-tile" data-state="correct">L</div>
+      <div class="title-tile" data-state="present">E</div>
+    </div>
+    <div id="title-tagline">guess the word. try not to embarrass yourself.</div>
+    <div id="title-player-card">
+      <div id="title-nameplate-wrap" onclick="openUsernameModal()" title="Click to change username" style="cursor:pointer;">
+        <div id="title-nameplate"></div>
+        <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;text-align:center;margin-top:5px;">tap to set username</div>
+      </div>
+      <div id="title-level-info">
+        <span id="title-level-label">LVL <span id="title-level-num">1</span></span>
+        <div id="title-xp-bar-wrap"><div id="title-xp-bar"></div></div>
+        <span id="title-xp-label">0 / 100 XP</span>
+      </div>
+    </div>
+    <div id="title-buttons">
+      <button class="title-btn primary" onclick="titlePlay()">Play</button>
+      <button class="title-btn secondary" onclick="openStatsScreen()">Stats &amp; Unlocks</button>
+    </div>
+    <div id="title-quickstats">
+      <div class="qs-item"><span class="qs-val" id="qs-played">0</span><span class="qs-key">Played</span></div>
+      <div class="qs-item"><span class="qs-val" id="qs-wins">0</span><span class="qs-key">Wins</span></div>
+      <div class="qs-item"><span class="qs-val" id="qs-streak">0</span><span class="qs-key">Streak</span></div>
+      <div class="qs-item"><span class="qs-val" id="qs-best">-</span><span class="qs-key">Best</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STATS / UNLOCKS SCREEN ── -->
+<div id="stats-screen">
+  <div id="stats-inner">
+    <div id="stats-header">
+      <button class="back-btn" onclick="closeStatsScreen()">← Back</button>
+      <div id="stats-title-text">Profile</div>
+    </div>
+
+    <!-- Player identity -->
+    <div id="stats-player-card">
+      <div id="stats-nameplate-preview"></div>
+      <div id="stats-level-row">
+        <span id="stats-level-badge">LVL <span id="stats-level-num">1</span></span>
+        <div id="stats-xp-bar-wrap"><div id="stats-xp-bar"></div></div>
+        <span id="stats-xp-text">0 / 100 XP</span>
+      </div>
+      <div id="stats-rank-label"></div>
+    </div>
+
+    <!-- Stat grid -->
+    <div id="stats-grid">
+      <div class="stat-box"><div class="stat-val" id="st-played">0</div><div class="stat-lbl">Games</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-wins">0</div><div class="stat-lbl">Wins</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-pct">0%</div><div class="stat-lbl">Win %</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-streak">0</div><div class="stat-lbl">Streak</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-best-streak">0</div><div class="stat-lbl">Best Streak</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-avg">-</div><div class="stat-lbl">Avg Guesses</div></div>
+    </div>
+
+    <!-- Guess distribution -->
+    <div id="stats-dist-section">
+      <div class="stats-section-title">Guess Distribution</div>
+      <div id="guess-dist"></div>
+    </div>
+
+    <!-- Nameplate unlocks -->
+    <div id="stats-unlocks-section">
+      <div class="stats-section-title">Nameplates</div>
+      <div id="unlocks-grid"></div>
+    </div>
+
+    <!-- Save / Load -->
+    <div id="save-section">
+      <div class="stats-section-title">Save Data</div>
+      <div class="save-btn-row">
+        <button class="save-btn primary" onclick="exportSave()">Export Save</button>
+        <button class="save-btn secondary" onclick="document.getElementById('import-file').click()">Import Save</button>
+        <input id="import-file" type="file" accept=".json" style="display:none" onchange="importSave(event)"/>
+      </div>
+      <div id="save-status"></div>
+    </div>
+
+    <!-- Username -->
+    <div id="username-section" style="margin-bottom:32px;">
+      <div class="stats-section-title">Profile</div>
+      <div class="save-btn-row">
+        <button class="save-btn secondary" onclick="openUsernameModal()" style="flex:none;padding:10px 20px;">Change Username</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LEVEL UP OVERLAY ── -->
+<div id="levelup-overlay">
+  <div id="levelup-card">
+    <div id="levelup-emoji" style="font-family:'Archivo Black',sans-serif;font-size:2rem;letter-spacing:0.1em;">LVL UP</div>
+    <div id="levelup-title">Level Up!</div>
+    <div id="levelup-level">Level <span id="levelup-num">2</span></div>
+    <div id="levelup-unlock-wrap" style="display:none">
+      <div id="levelup-unlock-label">New Unlock:</div>
+      <div id="levelup-unlock-nameplate"></div>
+    </div>
+    <button class="title-btn primary" onclick="closeLevelUp()">Nice</button>
+  </div>
+</div>
+
+<!-- ── GAME SCREEN ── -->
+<header id="game-header" style="display:none">
+  <button id="header-back-btn" onclick="goToTitle()">←</button>
+  <div id="header-center">
+    <h1>Wordle</h1>
+    <div id="header-nameplate"></div>
+  </div>
+  <button id="header-stats-btn" onclick="openStatsScreen()">Stats</button>
+</header>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -462,22 +1009,36 @@
   <div id="message-area"><div id="message"></div></div>
   <div id="grid"></div>
   <div id="keyboard"></div>
-  <button id="new-game" onclick="startNewGame()">New Game</button>
+  <button id="new-game" onclick="startNewGame()">Play Again</button>
 </div>
 
 <!-- ── Narrator ── -->
-<div id="narrator"><span id="narrator-avatar">😏</span><span id="narrator-text"></span></div>
+<div id="narrator"><span id="narrator-avatar"></span><span id="narrator-text"></span></div>
+
+<!-- ── Username Modal ── -->
+<div id="username-modal">
+  <div id="username-card">
+    <h2>Set Username</h2>
+    <input id="username-input" type="text" maxlength="16" placeholder="YOUR NAME" autocomplete="off" spellcheck="false"/>
+    <div id="username-preview-wrap"><div id="username-preview"></div></div>
+    <div id="username-hint">Shown on your nameplate. Max 16 characters.</div>
+    <div class="username-btn-row">
+      <button class="admin-btn primary" onclick="saveUsername()">Save</button>
+      <button class="admin-btn secondary" onclick="closeUsernameModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── Secret Admin Panel ── -->
 <div id="admin-overlay">
   <div id="admin-panel">
-    <h2><span>🎮</span> Troll Console</h2>
+    <h2>Troll Console</h2>
     <div>
       <label>Set next answer word</label>
       <input id="admin-word-input" type="text" maxlength="32" placeholder="e.g. HRITHIK" autocomplete="off" spellcheck="false"/>
     </div>
     <div id="admin-note">
-      Any length works. Words shorter than 5 letters will let the player win without filling all tiles. Words longer than 5 will spawn hidden extra tiles. 😈
+      Any length works. Words shorter than 5 letters will let the player win without filling all tiles. Words longer than 5 will spawn hidden extra tiles.
     </div>
     <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
       <label style="margin:0;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
@@ -489,7 +1050,7 @@
             border-radius:50%;background:white;transition:transform 0.2s;
             box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
         </div>
-        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Troll Mode <span style="font-size:0.9rem;">😈</span></span>
+        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Troll Mode</span>
       </label>
     </div>
     <div id="troll-note" style="font-size:0.72rem;color:var(--muted);line-height:1.5;display:none;">
@@ -502,7 +1063,7 @@
         <div id="rowthief-toggle" onclick="toggleMode('rowthief')" style="width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;">
           <div id="rowthief-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
         </div>
-        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Row Thief <span style="font-size:0.9rem;">✂️</span></span>
+        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Row Thief</span>
       </label>
     </div>
     <div id="rowthief-note" style="font-size:0.72rem;color:var(--muted);line-height:1.5;display:none;">
@@ -515,7 +1076,7 @@
         <div id="falsevic-toggle" onclick="toggleMode('falsevic')" style="width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;">
           <div id="falsevic-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
         </div>
-        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">False Victory <span style="font-size:0.9rem;">🏆</span></span>
+        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">False Victory</span>
       </label>
     </div>
     <div id="falsevic-note" style="font-size:0.72rem;color:var(--muted);line-height:1.5;display:none;">
@@ -528,7 +1089,7 @@
         <div id="narrator-toggle" onclick="toggleMode('narrator')" style="width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;">
           <div id="narrator-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
         </div>
-        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Narrator <span style="font-size:0.9rem;">😏</span></span>
+        <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Narrator</span>
       </label>
     </div>
     <div id="narrator-note" style="font-size:0.72rem;color:var(--muted);line-height:1.5;display:none;">
@@ -675,8 +1236,8 @@ async function loadWordLists() {
     ANSWER_WORDS = [...FALLBACK];
   }
   document.getElementById('loading').style.display = 'none';
-  document.getElementById('game').classList.add('visible');
-  startNewGame();
+  // Show title screen (not game directly)
+  showTitleScreen();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1060,6 +1621,7 @@ function revealRow(row, result, guess) {
         showMessage(msgs[row] || 'Great!', 0);
         narratorSay('win', guess, row);
         gameOver = true;
+        recordResult(true, row + 1);
         document.getElementById('new-game').classList.add('visible');
         clearIdleTimer();
       }
@@ -1093,6 +1655,7 @@ function revealRow(row, result, guess) {
       if (currentRow >= 6) {
         showMessage(targetWord.toUpperCase(), 0);
         gameOver = true;
+        recordResult(false, 6);
         document.getElementById('new-game').classList.add('visible');
         clearIdleTimer();
       }
@@ -1169,7 +1732,7 @@ function toggleTrollMode() { toggleMode('troll'); }
 function fireRowThief() {
   const row5 = document.getElementById('row-5');
   if (!row5) return;
-  showMessage('wait where did row 6 go 😈', 1800);
+  showMessage('wait where did row 6 go', 1800);
   row5.classList.add('stolen');
   // Narrator taunt
   setTimeout(() => narratorSay('rowthief'), 600);
@@ -1200,12 +1763,12 @@ function fireFalseVictory(row, len, actuallyWon) {
   // Step 2: bounce + triumphant win message
   setTimeout(() => {
     bounceRow(row, len);
-    const winMsgs = ['Genius! 🎉','You got it! 🎉','CORRECT! 🎉','Amazing! 🎉'];
+    const winMsgs = ['Genius!','You got it!','CORRECT!','Amazing!'];
     showMessage(winMsgs[Math.floor(Math.random()*winMsgs.length)], 0);
   }, len * 100 + 400);
 
   // Step 3: "oh wait"
-  const ohWaitMsgs = ['oh wait... 😬','hold on a sec...','actually...','wait.'];
+  const ohWaitMsgs = ['oh wait...','hold on a sec...','actually...','wait.'];
   setTimeout(() => {
     showMessage(ohWaitMsgs[Math.floor(Math.random()*ohWaitMsgs.length)], 0);
   }, len * 100 + 2200);
@@ -1227,14 +1790,16 @@ function fireFalseVictory(row, len, actuallyWon) {
     setTimeout(() => {
       if (actuallyWon) {
         // They actually got it right — the twist is that we troll them but then confirm it
-        showMessage('jk jk, you got it 😒', 0);
+        showMessage('jk jk, you got it', 0);
         narratorSay('win', guess, row);
+        recordResult(true, row + 1);
       } else {
-        const wrongMsgs = ['mb its actually wrong lol 💀', 'yeah no. that was wrong.', 'oops. not it. sorry (not sorry).'];
+        const wrongMsgs = ['mb its actually wrong lol', 'yeah no. that was wrong.', 'oops. not it. sorry (not sorry).'];
         showMessage(wrongMsgs[Math.floor(Math.random()*wrongMsgs.length)], 0);
         showMessage(`the word was ${targetWord.toUpperCase()}`, 0);
         setTimeout(() => showMessage(`the word was ${targetWord.toUpperCase()}`, 0), 600);
         narratorSay('falsevic', guess);
+        recordResult(false, 6);
       }
       gameOver = true;
       document.getElementById('new-game').classList.add('visible');
@@ -1251,7 +1816,7 @@ function fireTrollSwap() {
   do { newWord = ANSWER_WORDS[Math.floor(Math.random() * ANSWER_WORDS.length)]; }
   while (newWord === targetWord);
 
-  showMessage('uh actually i changed my mind 😈', 0);
+  showMessage('uh actually i changed my mind', 0);
 
   setTimeout(() => {
     targetWord = newWord;
@@ -1294,12 +1859,12 @@ let narratorTimer = null;
 const NARRATOR_LINES = {
   invalid: [
     w => `"${w.toUpperCase()}"?? is that even a language`,
-    w => `bro typed "${w.toUpperCase()}" with full confidence 💀`,
+    w => `bro typed "${w.toUpperCase()}" with full confidence`,
     w => `${w.toUpperCase()} is not a word. it has never been a word.`,
     w => `i looked up "${w.toUpperCase()}". nothing. absolutely nothing.`,
     w => `${w.toUpperCase()}? did you sneeze on the keyboard?`,
     w => `even autocorrect gave up on "${w.toUpperCase()}"`,
-    w => `"${w.toUpperCase()}" sent me 😭`,
+    w => `"${w.toUpperCase()}" sent me`,
     w => `not a word. not even close. ${w.toUpperCase()} does not exist.`,
     w => `dictionary has zero results for "${w.toUpperCase()}". shocking, right?`,
     w => `${w[0].toUpperCase() + w.slice(1).toLowerCase()} called. it said it's not a real word.`,
@@ -1325,8 +1890,8 @@ const NARRATOR_LINES = {
   short: [
     () => `that's not even 5 letters. come on.`,
     () => `did you forget how many letters a word has`,
-    () => `bro hit enter halfway through 💀`,
-    () => `…you were gonna finish that right`,
+    () => `bro hit enter halfway through`,
+    () => `...you were gonna finish that right`,
     () => `5 letters. five. that's all i ask.`,
     () => `we're playing wordle, not morse code`,
     () => `press a few more keys. any keys. please.`,
@@ -1347,7 +1912,7 @@ const NARRATOR_LINES = {
       if (greens === 0 && yellows === 0) return `literally nothing. zero. not one letter. impressive in the worst way.`;
       if (greens === 0 && yellows === 1) return `one yellow. one. you gonna do anything with that?`;
       if (greens === 0) return `all those yellows and not a single green... tragic`;
-      if (greens >= 4) return `you have ${greens} greens and you STILL got it wrong 💀`;
+      if (greens >= 4) return `you have ${greens} greens and you STILL got it wrong`;
       if (greens === 3) return `3 greens. getting warmer. or are you?`;
       return `${greens} green${greens>1?'s':''}, ${yellows} yellow${yellows!==1?'s':''}. this could take a while.`;
     },
@@ -1450,7 +2015,7 @@ const NARRATOR_LINES = {
   falsevic: [
     g => `yeah "${g.toUpperCase()}" was never right. did it feel good for a second though?`,
     g => `LMAO did you celebrate? because you shouldn't have.`,
-    () => `the board giveth and the board taketh away 😇`,
+    () => `the board giveth and the board taketh away`,
     () => `in another universe that was correct. not this one.`,
     () => `oh that? yeah that was a bug. the real answer is different.`,
     g => `"${g.toUpperCase()}"... close enough for a second. not close enough for real.`,
@@ -1474,7 +2039,7 @@ const NARRATOR_LINES = {
     () => `row 6 has been... relocated. you're welcome.`,
     () => `that last row? gone. consider it a tax.`,
     () => `the house always takes a cut. in this case, a row.`,
-    () => `row 6 has left the chat 👋`,
+    () => `row 6 has left the chat`,
     () => `you had 6 guesses. now you have 5. make them count. or don't.`,
     () => `i borrowed row 6. i'm not giving it back.`,
     () => `5 guesses left. just like that. life comes at you fast.`,
@@ -1482,8 +2047,8 @@ const NARRATOR_LINES = {
 };
 
 const NARRATOR_AVATARS = {
-  invalid: '🙄', short: '😐', wrong: '😏', idle: '🥱', win: '😒', falsevic: '😈',
-  backspace: '🤨', rowthief: '😈'
+  invalid: '/ ', short: '/ ', wrong: '/ ', idle: '/ ', win: '/ ', falsevic: '/ ',
+  backspace: '/ ', rowthief: '/ '
 };
 
 function narratorSay(type, arg1, arg2) {
@@ -1567,7 +2132,7 @@ function adminApply() {
 
   // Non-empty but invalid characters
   if (raw && !/^[a-z]+$/.test(raw)) {
-    document.getElementById('admin-status').textContent = '⚠ Letters only please';
+    document.getElementById('admin-status').textContent = 'Letters only please';
     document.getElementById('admin-status').style.color = '#c0392b';
     return;
   }
@@ -1584,13 +2149,13 @@ function adminApply() {
       if (note) note.style.display = 'none';
     }
     queuedWord = raw;
-    document.getElementById('admin-status').textContent = `✓ "${raw.toUpperCase()}" locked and loaded`;
+    document.getElementById('admin-status').textContent = `"${raw.toUpperCase()}" locked and loaded`;
   } else {
     // Blank — random word, keep troll mode as-is
     queuedWord = null;
     document.getElementById('admin-status').textContent = trollMode
-      ? '✓ Random word · Troll mode ON 😈'
-      : '✓ Starting random game…';
+      ? 'Random word · Troll mode ON'
+      : 'Starting random game...';
   }
 
   document.getElementById('admin-status').style.color = 'var(--correct)';
@@ -1598,6 +2163,389 @@ function adminApply() {
     adminClose();
     startNewGame();
   }, 900);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NAMEPLATES — all decorative unlocks
+// ─────────────────────────────────────────────────────────────────────────────
+const NAMEPLATES = [
+  // id, label, level required, CSS style string, icon
+  { id: 'default',    label: 'Novice',        level: 1,  style: 'background:#e4e1da;color:#1a1a18;border:2px solid #d3cfc6;',         icon: 'W' },
+  { id: 'sprout',     label: 'Sprout',        level: 3,  style: 'background:#d4edda;color:#2d6a4f;border:2px solid #74c69d;',         icon: 'S' },
+  { id: 'stone',      label: 'Stone Cold',    level: 5,  style: 'background:#6c757d;color:#fff;border:2px solid #495057;',            icon: 'ST' },
+  { id: 'golden',     label: 'Golden',        level: 8,  style: 'background:linear-gradient(90deg,#f6d365,#fda085);color:#7b2d00;border:2px solid #f6a623;', icon: 'G' },
+  { id: 'midnight',   label: 'Midnight',      level: 10, style: 'background:#1a1a2e;color:#e0e0ff;border:2px solid #4a4a8a;',         icon: 'M' },
+  { id: 'coral',      label: 'Coral',         level: 12, style: 'background:#ff6b6b;color:#fff;border:2px solid #ee5a24;',            icon: 'C' },
+  { id: 'arctic',     label: 'Arctic',        level: 15, style: 'background:linear-gradient(90deg,#a8edea,#fed6e3);color:#2c3e50;border:2px solid #74b9ff;', icon: 'AR' },
+  { id: 'volt',       label: 'Volt',          level: 18, style: 'background:#2d3436;color:#fdcb6e;border:2px solid #fdcb6e;',         icon: 'V' },
+  { id: 'royal',      label: 'Royal',         level: 20, style: 'background:linear-gradient(90deg,#4776e6,#8e54e9);color:#fff;border:2px solid #a29bfe;',    icon: 'R' },
+  { id: 'ember',      label: 'Ember',         level: 25, style: 'background:linear-gradient(90deg,#f7971e,#ffd200);color:#7b2d00;border:2px solid #e17055;', icon: 'E' },
+  { id: 'obsidian',   label: 'Obsidian',      level: 30, style: 'background:#0d0d0d;color:#c0c0c0;border:2px solid #636e72;',         icon: 'OB' },
+  { id: 'prismatic',  label: 'Prismatic',     level: 40, style: 'background:linear-gradient(90deg,#f953c6,#b91d73,#6a00f4,#0099f7,#00f2fe);color:#fff;border:2px solid #fff;', icon: 'PR' },
+  { id: 'legend',     label: 'The Legend',    level: 50, style: 'background:linear-gradient(90deg,#f6d365,#fda085,#f953c6);color:#fff;border:2px solid gold;letter-spacing:0.16em;', icon: 'L' },
+];
+
+function renderNameplate(plateId, container, overrideLevel) {
+  const plate = NAMEPLATES.find(p => p.id === plateId) || NAMEPLATES[0];
+  const s = loadStats();
+  const level = overrideLevel !== undefined ? overrideLevel : s.level;
+  const username = s.username || plate.label;
+  const el = document.createElement('div');
+  el.className = 'nameplate';
+  el.setAttribute('style', plate.style);
+  el.innerHTML = `<span class="nameplate-level">LV${level}</span><span class="nameplate-icon">${plate.icon}</span><span class="nameplate-label">${username}</span>`;
+  container.innerHTML = '';
+  container.appendChild(el);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATS / SAVE DATA
+// ─────────────────────────────────────────────────────────────────────────────
+const SAVE_KEY = 'wordle_stats_v2';
+
+const RANK_TITLES = [
+  [1,  'Word Wanderer'],
+  [5,  'Letter Scout'],
+  [10, 'Tile Tamer'],
+  [15, 'Vowel Hunter'],
+  [20, 'Syntax Slayer'],
+  [25, 'Wordle Warrior'],
+  [30, 'Grid Guardian'],
+  [40, 'Lexicon Lord'],
+  [50, 'The Legend'],
+];
+
+function getRankTitle(level) {
+  let title = RANK_TITLES[0][1];
+  for (const [lvl, t] of RANK_TITLES) {
+    if (level >= lvl) title = t;
+  }
+  return title;
+}
+
+function xpForLevel(level) {
+  // XP needed to reach next level: 100, 120, 144, ... (10% growth per level)
+  return Math.floor(100 * Math.pow(1.10, level - 1));
+}
+
+function defaultStats() {
+  return {
+    gamesPlayed: 0,
+    wins: 0,
+    streak: 0,
+    bestStreak: 0,
+    guessDist: [0, 0, 0, 0, 0, 0],
+    totalGuesses: 0,
+    totalWinGuesses: 0,
+    level: 1,
+    xp: 0,
+    equippedPlate: 'default',
+    unlockedPlates: ['default'],
+    username: '',
+  };
+}
+
+function loadStats() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return defaultStats();
+    return { ...defaultStats(), ...JSON.parse(raw) };
+  } catch { return defaultStats(); }
+}
+
+function saveStats(s) {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USERNAME
+// ─────────────────────────────────────────────────────────────────────────────
+function openUsernameModal() {
+  const s = loadStats();
+  const input = document.getElementById('username-input');
+  input.value = s.username || '';
+  updateUsernamePreview();
+  document.getElementById('username-modal').classList.add('open');
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeUsernameModal() {
+  document.getElementById('username-modal').classList.remove('open');
+}
+
+function updateUsernamePreview() {
+  const s = loadStats();
+  const val = document.getElementById('username-input').value.trim().toUpperCase();
+  const plate = NAMEPLATES.find(p => p.id === s.equippedPlate) || NAMEPLATES[0];
+  const preview = document.getElementById('username-preview');
+  const label = val || plate.label.toUpperCase();
+  preview.innerHTML = '';
+  const el = document.createElement('div');
+  el.className = 'nameplate';
+  el.setAttribute('style', plate.style);
+  el.innerHTML = `<span class="nameplate-level">LV${s.level}</span><span class="nameplate-icon">${plate.icon}</span><span class="nameplate-label">${label}</span>`;
+  preview.appendChild(el);
+}
+
+document.getElementById('username-input').addEventListener('input', updateUsernamePreview);
+document.getElementById('username-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveUsername();
+  if (e.key === 'Escape') closeUsernameModal();
+});
+
+function saveUsername() {
+  const val = document.getElementById('username-input').value.trim();
+  const s = loadStats();
+  s.username = val.slice(0, 16);
+  saveStats(s);
+  closeUsernameModal();
+  updateGameHeader();
+  // Re-render title nameplate if on title
+  renderNameplate(s.equippedPlate, document.getElementById('title-nameplate'));
+  // Re-render stats nameplate if stats open
+  const statsNameplate = document.getElementById('stats-nameplate-preview');
+  if (statsNameplate) renderNameplate(s.equippedPlate, statsNameplate);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT / IMPORT SAVE
+// ─────────────────────────────────────────────────────────────────────────────
+function exportSave() {
+  const s = loadStats();
+  const json = JSON.stringify(s, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'wordle_save.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  const status = document.getElementById('save-status');
+  if (status) { status.textContent = 'Save exported successfully.'; setTimeout(() => { status.textContent = ''; }, 3000); }
+}
+
+function importSave(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      // Basic validation
+      if (typeof parsed.gamesPlayed !== 'number') throw new Error('Invalid save');
+      const merged = { ...defaultStats(), ...parsed };
+      saveStats(merged);
+      const status = document.getElementById('save-status');
+      if (status) { status.textContent = 'Save imported! Reloading...'; }
+      setTimeout(() => location.reload(), 900);
+    } catch {
+      const status = document.getElementById('save-status');
+      if (status) { status.textContent = 'Error: Invalid save file.'; status.style.color = 'var(--absent)'; setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000); }
+    }
+  };
+  reader.readAsText(file);
+  // Reset input so same file can be re-imported
+  event.target.value = '';
+}
+
+function awardXP(won, guesses) {
+  const s = loadStats();
+  const oldLevel = s.level;
+
+  // XP formula:
+  // Win: 50 base + (7 - guesses) * 15 bonus (first try = 50+90=140, last try = 50+15=65)
+  // Loss: 10 consolation XP
+  let gained = won ? (50 + Math.max(0, 7 - guesses) * 15) : 10;
+  s.xp += gained;
+
+  // Level up loop
+  let levelsGained = 0;
+  while (s.xp >= xpForLevel(s.level)) {
+    s.xp -= xpForLevel(s.level);
+    s.level++;
+    levelsGained++;
+  }
+
+  saveStats(s);
+  return { gained, oldLevel, newLevel: s.level, levelsGained, stats: s };
+}
+
+function recordResult(won, guesses) {
+  if (specialMode) return; // don't count troll games
+  const s = loadStats();
+  s.gamesPlayed++;
+  if (won) {
+    s.wins++;
+    s.streak++;
+    if (s.streak > s.bestStreak) s.bestStreak = s.streak;
+    s.guessDist[Math.min(guesses - 1, 5)]++;
+    s.totalWinGuesses += guesses;
+  } else {
+    s.streak = 0;
+  }
+  saveStats(s);
+
+  // Award XP and handle level-up
+  const { gained, oldLevel, newLevel, levelsGained, stats } = awardXP(won, guesses);
+  if (levelsGained > 0) {
+    // Check for new nameplate unlocks
+    const newUnlocks = NAMEPLATES.filter(p =>
+      p.level <= newLevel && !stats.unlockedPlates.includes(p.id)
+    );
+    // Add newly unlocked plates
+    newUnlocks.forEach(p => stats.unlockedPlates.push(p.id));
+    saveStats(stats);
+    // Show level up after a short delay (after win animation)
+    setTimeout(() => showLevelUp(newLevel, newUnlocks[newUnlocks.length - 1] || null), 2200);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TITLE SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
+function showTitleScreen() {
+  const s = loadStats();
+  // Update quick stats
+  document.getElementById('qs-played').textContent = s.gamesPlayed;
+  document.getElementById('qs-wins').textContent = s.wins;
+  document.getElementById('qs-streak').textContent = s.streak;
+  const avgGuesses = s.wins > 0 ? (s.totalWinGuesses / s.wins).toFixed(1) : '-';
+  document.getElementById('qs-best').textContent = avgGuesses;
+
+  // Level + XP bar
+  document.getElementById('title-level-num').textContent = s.level;
+  const needed = xpForLevel(s.level);
+  document.getElementById('title-xp-label').textContent = `${s.xp} / ${needed} XP`;
+  setTimeout(() => {
+    document.getElementById('title-xp-bar').style.width = `${Math.min(100, (s.xp / needed) * 100)}%`;
+  }, 100);
+
+  // Nameplate
+  renderNameplate(s.equippedPlate, document.getElementById('title-nameplate'));
+
+  document.getElementById('title-screen').classList.remove('hidden');
+}
+
+function titlePlay() {
+  document.getElementById('title-screen').classList.add('hidden');
+  document.getElementById('game-header').style.display = 'flex';
+  document.getElementById('game').classList.add('visible');
+  updateGameHeader();
+  startNewGame();
+}
+
+function goToTitle() {
+  gameOver = true;
+  clearIdleTimer();
+  document.getElementById('game').classList.remove('visible');
+  document.getElementById('game-header').style.display = 'none';
+  showTitleScreen();
+}
+
+function updateGameHeader() {
+  const s = loadStats();
+  renderNameplate(s.equippedPlate, document.getElementById('header-nameplate'));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATS SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
+function openStatsScreen() {
+  const s = loadStats();
+  const screen = document.getElementById('stats-screen');
+
+  // Player card
+  document.getElementById('stats-level-num').textContent = s.level;
+  const needed = xpForLevel(s.level);
+  document.getElementById('stats-xp-text').textContent = `${s.xp} / ${needed} XP`;
+  document.getElementById('stats-rank-label').textContent = getRankTitle(s.level);
+  renderNameplate(s.equippedPlate, document.getElementById('stats-nameplate-preview'));
+  setTimeout(() => {
+    document.getElementById('stats-xp-bar').style.width = `${Math.min(100, (s.xp / needed) * 100)}%`;
+  }, 50);
+
+  // Stats grid
+  document.getElementById('st-played').textContent = s.gamesPlayed;
+  document.getElementById('st-wins').textContent = s.wins;
+  document.getElementById('st-pct').textContent = s.gamesPlayed > 0
+    ? Math.round((s.wins / s.gamesPlayed) * 100) + '%' : '0%';
+  document.getElementById('st-streak').textContent = s.streak;
+  document.getElementById('st-best-streak').textContent = s.bestStreak;
+  const avg = s.wins > 0 ? (s.totalWinGuesses / s.wins).toFixed(1) : '-';
+  document.getElementById('st-avg').textContent = avg;
+
+  // Guess distribution
+  const dist = document.getElementById('guess-dist');
+  dist.innerHTML = '';
+  const maxDist = Math.max(1, ...s.guessDist);
+  s.guessDist.forEach((count, i) => {
+    const row = document.createElement('div');
+    row.className = 'dist-row';
+    const pct = Math.max(4, (count / maxDist) * 100);
+    row.innerHTML = `
+      <div class="dist-label">${i + 1}</div>
+      <div class="dist-bar-wrap">
+        <div class="dist-bar ${count === Math.max(...s.guessDist) && count > 0 ? 'highlight' : ''}"
+             style="width:${pct}%"><span>${count}</span></div>
+      </div>`;
+    dist.appendChild(row);
+  });
+
+  // Nameplates unlock grid
+  const grid = document.getElementById('unlocks-grid');
+  grid.innerHTML = '';
+  NAMEPLATES.forEach(plate => {
+    const unlocked = s.unlockedPlates.includes(plate.id);
+    const equipped  = s.equippedPlate === plate.id;
+    const card = document.createElement('div');
+    card.className = 'unlock-card' + (unlocked ? '' : ' locked') + (equipped ? ' equipped' : '');
+    card.innerHTML = `
+      ${equipped ? '<div class="unlock-equipped-badge">On</div>' : ''}
+      ${!unlocked ? `<div class="unlock-lock-icon" style="font-size:0.6rem;letter-spacing:0.06em;">LOCKED</div>` : ''}
+      <div style="pointer-events:none">
+        <div class="nameplate" style="${plate.style}">
+          <span class="nameplate-icon">${plate.icon}</span><span class="nameplate-label">${plate.label}</span>
+        </div>
+      </div>
+      <div class="unlock-card-lvl">${unlocked ? (equipped ? 'Equipped' : 'Tap to equip') : `Unlocks at Lvl ${plate.level}`}</div>
+    `;
+    if (unlocked && !equipped) {
+      card.addEventListener('click', () => {
+        const st = loadStats();
+        st.equippedPlate = plate.id;
+        saveStats(st);
+        updateGameHeader();
+        openStatsScreen(); // re-render
+      });
+    }
+    grid.appendChild(card);
+  });
+
+  screen.classList.add('open');
+}
+
+function closeStatsScreen() {
+  document.getElementById('stats-screen').classList.remove('open');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEVEL UP OVERLAY
+// ─────────────────────────────────────────────────────────────────────────────
+function showLevelUp(level, newPlate) {
+  document.getElementById('levelup-num').textContent = level;
+  const unlockWrap = document.getElementById('levelup-unlock-wrap');
+  if (newPlate) {
+    unlockWrap.style.display = 'flex';
+    renderNameplate(newPlate.id, document.getElementById('levelup-unlock-nameplate'));
+  } else {
+    unlockWrap.style.display = 'none';
+  }
+  document.getElementById('levelup-overlay').classList.add('show');
+}
+
+function closeLevelUp() {
+  document.getElementById('levelup-overlay').classList.remove('show');
+  updateGameHeader();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
