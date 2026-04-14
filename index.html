@@ -2170,19 +2170,19 @@ function adminApply() {
 // ─────────────────────────────────────────────────────────────────────────────
 const NAMEPLATES = [
   // id, label, level required, CSS style string, icon
-  { id: 'default',    label: 'Novice',        level: 1,  style: 'background:#e4e1da;color:#1a1a18;border:2px solid #d3cfc6;',         icon: 'W' },
-  { id: 'sprout',     label: 'Sprout',        level: 3,  style: 'background:#d4edda;color:#2d6a4f;border:2px solid #74c69d;',         icon: 'S' },
-  { id: 'stone',      label: 'Stone Cold',    level: 5,  style: 'background:#6c757d;color:#fff;border:2px solid #495057;',            icon: 'ST' },
-  { id: 'golden',     label: 'Golden',        level: 8,  style: 'background:linear-gradient(90deg,#f6d365,#fda085);color:#7b2d00;border:2px solid #f6a623;', icon: 'G' },
-  { id: 'midnight',   label: 'Midnight',      level: 10, style: 'background:#1a1a2e;color:#e0e0ff;border:2px solid #4a4a8a;',         icon: 'M' },
-  { id: 'coral',      label: 'Coral',         level: 12, style: 'background:#ff6b6b;color:#fff;border:2px solid #ee5a24;',            icon: 'C' },
-  { id: 'arctic',     label: 'Arctic',        level: 15, style: 'background:linear-gradient(90deg,#a8edea,#fed6e3);color:#2c3e50;border:2px solid #74b9ff;', icon: 'AR' },
-  { id: 'volt',       label: 'Volt',          level: 18, style: 'background:#2d3436;color:#fdcb6e;border:2px solid #fdcb6e;',         icon: 'V' },
-  { id: 'royal',      label: 'Royal',         level: 20, style: 'background:linear-gradient(90deg,#4776e6,#8e54e9);color:#fff;border:2px solid #a29bfe;',    icon: 'R' },
-  { id: 'ember',      label: 'Ember',         level: 25, style: 'background:linear-gradient(90deg,#f7971e,#ffd200);color:#7b2d00;border:2px solid #e17055;', icon: 'E' },
-  { id: 'obsidian',   label: 'Obsidian',      level: 30, style: 'background:#0d0d0d;color:#c0c0c0;border:2px solid #636e72;',         icon: 'OB' },
-  { id: 'prismatic',  label: 'Prismatic',     level: 40, style: 'background:linear-gradient(90deg,#f953c6,#b91d73,#6a00f4,#0099f7,#00f2fe);color:#fff;border:2px solid #fff;', icon: 'PR' },
-  { id: 'legend',     label: 'The Legend',    level: 50, style: 'background:linear-gradient(90deg,#f6d365,#fda085,#f953c6);color:#fff;border:2px solid gold;letter-spacing:0.16em;', icon: 'L' },
+  { id: 'default',    label: 'Novice',        level: 1,  style: 'background:#e4e1da;color:#1a1a18;border:2px solid #d3cfc6;',},
+  { id: 'sprout',     label: 'Sprout',        level: 3,  style: 'background:#d4edda;color:#2d6a4f;border:2px solid #74c69d;',},
+  { id: 'stone',      label: 'Stone Cold',    level: 5,  style: 'background:#6c757d;color:#fff;border:2px solid #495057;',            icon: '' },
+  { id: 'golden',     label: 'Golden',        level: 8,  style: 'background:linear-gradient(90deg,#f6d365,#fda085);color:#7b2d00;border:2px solid #f6a623;', icon: '' },
+  { id: 'midnight',   label: 'Midnight',      level: 10, style: 'background:#1a1a2e;color:#e0e0ff;border:2px solid #4a4a8a;',         icon: '' },
+  { id: 'coral',      label: 'Coral',         level: 12, style: 'background:#ff6b6b;color:#fff;border:2px solid #ee5a24;',            icon: '' },
+  { id: 'arctic',     label: 'Arctic',        level: 15, style: 'background:linear-gradient(90deg,#a8edea,#fed6e3);color:#2c3e50;border:2px solid #74b9ff;', icon: '' },
+  { id: 'volt',       label: 'Volt',          level: 18, style: 'background:#2d3436;color:#fdcb6e;border:2px solid #fdcb6e;',         icon: '' },
+  { id: 'royal',      label: 'Royal',         level: 20, style: 'background:linear-gradient(90deg,#4776e6,#8e54e9);color:#fff;border:2px solid #a29bfe;',    icon: '' },
+  { id: 'ember',      label: 'Ember',         level: 25, style: 'background:linear-gradient(90deg,#f7971e,#ffd200);color:#7b2d00;border:2px solid #e17055;', icon: '' },
+  { id: 'obsidian',   label: 'Obsidian',      level: 30, style: 'background:#0d0d0d;color:#c0c0c0;border:2px solid #636e72;',         icon: '' },
+  { id: 'prismatic',  label: 'Prismatic',     level: 40, style: 'background:linear-gradient(90deg,#f953c6,#b91d73,#6a00f4,#0099f7,#00f2fe);color:#fff;border:2px solid #fff;', icon: '' },
+  { id: 'legend',     label: 'The Legend',    level: 50, style: 'background:linear-gradient(90deg,#f6d365,#fda085,#f953c6);color:#fff;border:2px solid gold;letter-spacing:0.16em;', icon: '' },
 ];
 
 function renderNameplate(plateId, container, overrideLevel) {
